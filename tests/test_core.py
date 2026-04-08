@@ -324,3 +324,226 @@ def test_federation_client_queue():
     pending = client.flush_pending()
     assert len(pending) == 1
     assert pending[0].verify("s")
+
+
+# ── trust & reputation ──────────────────────────────────────────────────
+
+from oracle_memory.trust import ReputationEngine, NodeReputation, ClaimProvenance
+
+
+def test_reputation_new_node():
+    engine = ReputationEngine()
+    rep = engine.get_node_reputation("n1")
+    assert rep.score == 0.5
+    assert rep.is_trusted  # 0.5 >= 0.3
+
+
+def test_reputation_accept_gate():
+    engine = ReputationEngine()
+    ok, reason = engine.should_accept_claim("n1", confidence=0.6)
+    assert ok
+    assert reason == "accepted"
+
+
+def test_reputation_untrusted_rejection():
+    engine = ReputationEngine()
+    rep = engine.get_node_reputation("bad-node")
+    rep.score = 0.1  # below trust threshold
+    ok, reason = engine.should_accept_claim("bad-node", confidence=0.5)
+    assert not ok
+    assert reason == "untrusted_node"
+
+
+def test_reputation_confidence_cap():
+    engine = ReputationEngine()
+    rep = engine.get_node_reputation("n1")
+    rep.score = 0.4
+    adjusted = engine.adjust_confidence("n1", 0.9)
+    assert adjusted == 0.4  # capped to node's reputation
+
+
+def test_reputation_hallucination_penalty():
+    engine = ReputationEngine()
+    engine.on_claim_accepted("n1", "c1", "u1")
+    initial_score = engine.get_node_reputation("n1").score
+    engine.on_hallucination("n1", ["c1"])
+    assert engine.get_node_reputation("n1").score < initial_score
+    prov = engine.get_claim_provenance("c1")
+    assert prov is not None
+    assert prov.disputes == 1
+
+
+def test_reputation_positive_feedback():
+    engine = ReputationEngine()
+    engine.on_claim_accepted("n1", "c1", "u1")
+    engine.on_positive_feedback("n1", ["c1"])
+    prov = engine.get_claim_provenance("c1")
+    assert prov.confirmations == 1
+
+
+def test_reputation_rate_limiting():
+    engine = ReputationEngine()
+    for _ in range(30):
+        engine.record_activity("n1")
+    assert not engine.check_rate_limit("n1", max_per_minute=30)
+
+
+def test_claim_provenance_trust_score():
+    prov = ClaimProvenance(claim_id="c1", origin_node_id="n1", origin_user_id="u1")
+    assert prov.trust_score == 0.5  # neutral
+    prov.confirmations = 3
+    prov.disputes = 1
+    assert prov.trust_score == 0.75  # 3/4
+
+
+# ── conflict detection & resolution ─────────────────────────────────────
+
+from oracle_memory.conflict import ConflictDetector, ConflictResolver, ResolutionStrategy
+
+
+def test_conflict_detection_same_topic():
+    detector = ConflictDetector()
+    a = MemoryClaim(user_id="u1", memory_type="general", content="Python is best", title="Language")
+    b = MemoryClaim(user_id="u1", memory_type="general", content="Rust is best", title="Language")
+    conflict = detector.check_pair(a, b)
+    assert conflict is not None
+    assert conflict.reason == "contradicts"
+
+
+def test_conflict_detection_no_conflict():
+    detector = ConflictDetector()
+    a = MemoryClaim(user_id="u1", memory_type="general", content="Python is good")
+    b = MemoryClaim(user_id="u1", memory_type="goal", content="Learn Rust")
+    assert detector.check_pair(a, b) is None  # different types
+
+
+def test_conflict_resolution_confidence():
+    detector = ConflictDetector()
+    resolver = ConflictResolver(ResolutionStrategy.CONFIDENCE_WINS)
+    a = MemoryClaim(user_id="u1", memory_type="general", content="X is true", title="Fact", confidence=0.9)
+    b = MemoryClaim(user_id="u1", memory_type="general", content="X is false", title="Fact", confidence=0.4)
+    conflict = detector.check_pair(a, b)
+    winner = resolver.resolve(conflict, a, b)
+    assert winner == a.claim_id
+    assert conflict.resolved
+
+
+def test_conflict_resolution_reputation():
+    detector = ConflictDetector()
+    resolver = ConflictResolver()
+    a = MemoryClaim(user_id="u1", memory_type="general", content="X is true", title="T")
+    b = MemoryClaim(user_id="u1", memory_type="general", content="X is false", title="T")
+    conflict = detector.check_pair(a, b)
+    winner = resolver.resolve(conflict, a, b,
+                               reputation_a=0.9, reputation_b=0.3,
+                               strategy=ResolutionStrategy.REPUTATION_WINS)
+    assert winner == a.claim_id
+
+
+def test_conflict_dedup():
+    detector = ConflictDetector()
+    a = MemoryClaim(user_id="u1", memory_type="general", content="X", title="T")
+    b = MemoryClaim(user_id="u1", memory_type="general", content="Y", title="T")
+    c1 = detector.check_pair(a, b)
+    c2 = detector.check_pair(a, b)
+    assert c1.conflict_id == c2.conflict_id  # same conflict, not re-registered
+
+
+# ── standard schema ──────────────────────────────────────────────────────
+
+from oracle_memory.schema import (
+    StandardClaim, validate_claim, SCHEMA_VERSION,
+    from_mempalace_memory, from_mem0_fact, from_semantic_triple,
+)
+
+
+def test_standard_claim_basics():
+    claim = StandardClaim(claim_id="c1", content="Flask is good", memory_type="general")
+    assert claim.schema_version == SCHEMA_VERSION
+    assert claim.content_hash()  # non-empty
+
+
+def test_standard_claim_validation():
+    good = StandardClaim(claim_id="c1", content="hello", memory_type="general")
+    assert validate_claim(good) == []
+
+    bad = StandardClaim(claim_id="", content="", memory_type="bogus", confidence=5.0)
+    errors = validate_claim(bad)
+    assert len(errors) >= 3  # missing id, empty content, bad type, bad confidence
+
+
+def test_standard_claim_roundtrip():
+    original = StandardClaim(claim_id="c1", content="test", memory_type="goal", user_id="u1")
+    json_str = original.to_json()
+    restored = StandardClaim.from_json(json_str)
+    assert restored.claim_id == "c1"
+    assert restored.memory_type == "goal"
+
+
+def test_from_mempalace_memory():
+    entry = {"id": "m1", "text": "User likes Python", "hall": "preferences", "wing": "personal"}
+    claim = from_mempalace_memory(entry, user_id="u1")
+    assert claim.memory_type == "preference"
+    assert claim.wing == "personal"
+
+
+def test_from_mem0_fact():
+    fact = {"id": "f1", "fact": "User is a developer", "confidence": 0.8}
+    claim = from_mem0_fact(fact, user_id="u1")
+    assert "developer" in claim.content
+    assert claim.confidence == 0.8
+
+
+def test_from_semantic_triple():
+    claim = from_semantic_triple("Alice", "prefers", "Python")
+    assert claim.memory_type == "preference"
+    assert "Alice prefers Python" in claim.content
+
+
+# ── token incentives ─────────────────────────────────────────────────────
+
+from oracle_memory.tokens import TokenLedger, TokenConfig
+
+
+def test_token_ledger_reward():
+    ledger = TokenLedger()
+    amount = ledger.reward_claim_accepted("n1", "c1")
+    assert amount > 0
+    assert ledger.get_balance("n1").balance == amount
+
+
+def test_token_ledger_penalty():
+    ledger = TokenLedger()
+    ledger.reward_claim_accepted("n1", "c1")
+    ledger.penalize_hallucination("n1", "c1")
+    balance = ledger.get_balance("n1")
+    assert balance.balance < 0  # penalty > reward
+
+
+def test_token_quality_multiplier():
+    config = TokenConfig(quality_multiplier=2.0, quality_multiplier_threshold=0.8)
+    ledger = TokenLedger(config)
+    # High-rep node gets 2x
+    high = ledger.reward_claim_accepted("good-node", "c1", reputation=0.9)
+    # Low-rep node gets 1x
+    low = ledger.reward_claim_accepted("new-node", "c2", reputation=0.5)
+    assert high == low * 2
+
+
+def test_token_leaderboard():
+    ledger = TokenLedger()
+    ledger.reward_claim_accepted("n1", "c1")
+    ledger.reward_claim_accepted("n1", "c2")
+    ledger.reward_claim_accepted("n2", "c3")
+    board = ledger.leaderboard()
+    assert board[0].node_id == "n1"  # n1 has more tokens
+
+
+def test_token_network_stats():
+    ledger = TokenLedger()
+    ledger.reward_claim_accepted("n1", "c1")
+    ledger.penalize_hallucination("n1", "c2")
+    stats = ledger.network_stats()
+    assert stats["total_nodes"] == 1
+    assert stats["total_earned"] > 0
+    assert stats["total_penalized"] > 0

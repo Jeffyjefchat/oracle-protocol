@@ -26,15 +26,20 @@ pip install -e ".[dev]"
 
 ## Why this exists
 
-| Feature | Vanilla MemPalace | Oracle Memory |
-|---------|-------------------|---------------|
-| Per-user private memory | ✅ | ✅ |
-| Public/general facts | ❌ | ✅ |
-| Multi-node federation | ❌ | ✅ |
-| Wire protocol (HMAC-signed) | ❌ | ✅ |
-| Quality-driven auto-tuning | ❌ | ✅ |
-| Orchestrator control plane | ❌ | ✅ |
-| No raw conversation storage | ❌ | ✅ |
+| Feature | MemPalace | LLMem | memX | Mem0 | **Oracle Memory** |
+|---------|-----------|-------|------|------|-------------------|
+| Per-user private memory | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Public/general facts | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Multi-node federation | ❌ | ❌ | ✅ | ❌ | ✅ |
+| Wire protocol (HMAC-signed) | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Quality auto-tuning | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Token incentive layer | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Reputation + Sybil resistance | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Conflict resolution | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Standard memory format | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Provenance tracking | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Hallucination propagation defense | ❌ | ❌ | ❌ | ❌ | ✅ |
+| No raw conversation storage | ❌ | ❌ | ✅ | ❌ | ✅ |
 
 ## Architecture
 
@@ -78,9 +83,13 @@ pip install -e ".[dev]"
 | `oracle_memory.service` | High-level orchestration for ingestion and retrieval |
 | `oracle_memory.protocol` | HMAC-signed wire protocol for node ↔ orchestrator |
 | `oracle_memory.control_plane` | Orchestrator, retrieval policies, auto-tuning |
-| `oracle_memory.quality` | Quality event tracking an metric aggregation |
+| `oracle_memory.quality` | Quality event tracking and metric aggregation |
 | `oracle_memory.federation` | Multi-node registry and public claim exchange |
-| `oracle_memory.mempalace_adapter` | Adapter boundary for future MemPalace integration |
+| `oracle_memory.trust` | Reputation engine, Sybil resistance, provenance tracking |
+| `oracle_memory.conflict` | Conflict detection and resolution between claims |
+| `oracle_memory.schema` | Standard memory format — universal claim schema v1.0 |
+| `oracle_memory.tokens` | Token incentive ledger — rewards, penalties, leaderboard |
+| `oracle_memory.mempalace_adapter` | Adapter boundary for MemPalace integration |
 
 ## Quick start
 
@@ -177,33 +186,44 @@ All node ↔ orchestrator messages use `ProtocolMessage` with HMAC-SHA256 signin
 ## Core concepts
 
 - **Claims** — normalized extracted facts (not raw text)
+- **StandardClaim** — universal memory format (schema v1.0) compatible with MemPalace, Mem0, Memori
 - **Visibility** — `private` (user-only) or `public` (shared general facts)
 - **Palace coordinates** — `wing/hall/room` for organizing memory
 - **Retrieval policy** — tunable parameters for how memory is ranked and mixed
 - **Quality tracking** — hits, misses, hallucinations, corrections, satisfaction
 - **Auto-tuning** — orchestrator adjusts policies based on quality signals
+- **Reputation** — nodes earn trust; bad actors get throttled (Sybil resistance)
+- **Provenance** — every claim tracks origin node, confirmations, disputes
+- **Conflict resolution** — contradicting claims get detected and resolved
+- **Tokens** — reward useful contributions, penalize hallucinations
 
 ## Roadmap
 
 1. Real embeddings / vector retrieval (ChromaDB, pgvector)
-2. MemPalace adapter implementation
+2. HTTP transport for protocol messages
 3. SQLite and Postgres store backends
-4. HTTP transport for protocol messages
-5. Conflict detection and claim invalidation
-6. Dashboard for quality metrics visualization
+4. Dashboard for quality metrics and token leaderboard
+5. Bridge to crypto tokens (ERC-20 / Cosmos)
+6. MCP (Model Context Protocol) transport adapter
 
 ## What problem this solves
 
-There is **no mature collective knowledge token network for LLM memory systems** yet.
-The pieces exist in fragments across different projects, but nothing combines them:
+Every AI assistant says the same thing when asked about collective knowledge networks for LLMs:
 
-| Layer | What's needed | Status |
-|-------|--------------|--------|
-| Local structured memory | MemPalace-style wings/halls/rooms | ✅ Solved (MemPalace + this lib) |
-| Knowledge exchange protocol | Shared schema for facts, embeddings, reasoning | ✅ Solved (this lib) |
-| Quality validation | Score correctness, punish hallucinations | ✅ Solved (this lib) |
-| Federation / multi-node sync | Nodes discover each other, exchange public claims | ✅ Solved (this lib) |
-| Token incentive layer | Reward useful knowledge contributions | 🔜 Roadmap |
+> *"No mature collective knowledge token network for LLM memory exists yet."*
+> *"The pieces exist in fragments but nothing combines them."*
+
+**This library is the combination.** Here is the gap analysis and what we solve:
+
+| Gap identified | Why it's hard | Our solution |
+|---|---|---|
+| 🧪 Memory quality unsolved | Hallucination propagation, conflicting truths | `quality.py` + `trust.py` — quality tracking auto-tunes policy; reputation caps confidence from untrusted nodes |
+| 🔐 Privacy vs sharing conflict | Personal memory is sensitive | `private`/`public` visibility on every claim; private memory never leaves the node |
+| 💸 Token incentives are tricky | Valuation, spam, Sybil resistance | `tokens.py` — reward accepted claims, penalize hallucinations; `trust.py` — rate limiting + reputation gating |
+| ⚙️ No standard memory format | MemPalace=logs, Mem0=facts, Memori=triples | `schema.py` — `StandardClaim` v1.0 with adapters from MemPalace, Mem0, semantic triples |
+| 🌐 No shared memory graph | Each system is isolated | `federation.py` — nodes register, exchange public claims, query cross-node |
+| 🤝 No trust/attribution layer | Who contributed what? | `trust.py` — `ClaimProvenance` tracks origin, confirmations, disputes, retrievals |
+| ⚔️ Conflicting truths | Two nodes disagree | `conflict.py` — detect contradictions, resolve by confidence/reputation/consensus/recency |
 
 This library is the **missing layer between local AI memory and global shared intelligence**.
 It sits on top of MemPalace (or any local memory store) and adds:
@@ -227,10 +247,14 @@ It sits on top of MemPalace (or any local memory store) and adds:
 | [SingularityNET](https://singularitynet.io/) | Decentralized AI marketplace | Token economy for AI services, not memory |
 | [Fetch.ai](https://fetch.ai/) | Autonomous agent framework | Agent infra, no shared memory layer |
 | [Ocean Protocol](https://oceanprotocol.com/) | Data marketplace with tokens | Data sharing, not LLM memory |
-| [Allora Network](https://allora.network/) | Collective intelligence via consensus | Closest concept — scoring agent outputs |
+| [Allora Network](https://allora.network/) | Collective intelligence via consensus | Closest concept — scoring agent outputs; no memory layer |
 | [Recall Network](https://recall.network/) | Agent competition + ranking | Agent economy, not structured memory sync |
+| [LLMem](https://llmem.com/) | Cross-LLM memory sync | "Dropbox for AI memory" — not tokenized, not a network |
+| [memX](https://github.com/) | Multi-agent real-time shared memory | CRDT sync for coordination, no knowledge economy |
+| [Mem0](https://mem0.ai/) | Extracted facts for LLMs | Single-user, no federation, no tokens |
+| [NodeGoAI](https://nodegoai.com/) | Distributed GPU compute | Infra layer only, no knowledge sharing |
 
-**None of these** provide a plug-and-play shared memory layer for LLM systems.
+**None of these** combine all layers: local memory + federation + tokens + trust + standard schema.
 This library does.
 
 ## Keywords
@@ -240,4 +264,9 @@ This library does.
 `decentralized AI memory` · `knowledge exchange` · `collective intelligence` ·
 `AI orchestrator` · `quality auto-tuning` · `RAG` · `retrieval augmented generation` ·
 `context sharing` · `private-first memory` · `multi-agent knowledge` ·
-`distributed LLM memory` · `conversational AI memory`
+`distributed LLM memory` · `conversational AI memory` · `token incentive` ·
+`Sybil resistance` · `hallucination defense` · `conflict resolution` ·
+`claim provenance` · `reputation system` · `standard memory format` ·
+`knowledge graph` · `Mem0 alternative` · `LLMem alternative` · `memX alternative` ·
+`SingularityNET memory` · `Allora memory` · `Recall Network memory` ·
+`shared intelligence` · `collective context field` · `memory fragments as assets`
