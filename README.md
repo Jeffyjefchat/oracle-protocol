@@ -2,12 +2,16 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-36%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-60%2B%20passing-brightgreen)]()
+
+**The coordination layer for AI memory.** Also known as **MemOS** — the Kubernetes of LLM memory.
 
 A private-first extracted-memory library with a built-in coordination protocol.
 Each user gets private memory. Extracted facts (not raw conversations) are the
 default storage layer. Nodes federate through an orchestrator that auto-tunes
 retrieval quality — connecting all LLM-powered apps into a collective knowledge network.
+
+**17 modules. 60+ tests. Zero required dependencies. One-liner API.**
 
 ## Install
 
@@ -22,6 +26,40 @@ pip install "oracle-memory[mempalace] @ git+https://github.com/Jeffyjefchat/coll
 git clone https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace.git
 cd collective-knowledge-global-sharing-token-network-mempalace
 pip install -e ".[dev]"
+```
+
+## Quick start (5 seconds)
+
+```python
+from oracle_memory import OracleAgent
+
+agent = OracleAgent("my-agent")
+agent.remember("Python was created by Guido van Rossum in 1991")
+agent.remember("Flask is a lightweight WSGI web framework")
+
+results = agent.recall("who created Python?")
+print(results)  # ['Python was created by Guido van Rossum in 1991']
+
+agent.thumbs_up()   # positive feedback → improves future retrieval
+print(agent.stats)  # token balance, quality metrics, claim count
+```
+
+That's it. One object, five methods: `remember()`, `recall()`, `forget()`, `thumbs_up()`, `thumbs_down()`.
+
+For framework integrations:
+
+```python
+# LangChain drop-in
+from oracle_memory.integrations import LangChainMemory
+memory = LangChainMemory(agent_name="my-chain")
+
+# LlamaIndex drop-in
+from oracle_memory.integrations import LlamaIndexMemory
+memory = LlamaIndexMemory(agent_name="llama-agent")
+
+# AutoGen drop-in
+from oracle_memory.integrations import AutoGenMemoryBackend
+backend = AutoGenMemoryBackend(agent_name="coder")
 ```
 
 ## Why this exists
@@ -90,6 +128,11 @@ pip install -e ".[dev]"
 | `oracle_memory.schema` | Standard memory format — universal claim schema v1.0 |
 | `oracle_memory.tokens` | Token incentive ledger — rewards, penalties, leaderboard |
 | `oracle_memory.mempalace_adapter` | Adapter boundary for MemPalace integration |
+| `oracle_memory.easy` | **One-liner API** — `OracleAgent` with 5 methods |
+| `oracle_memory.crypto` | Security hardening — key rotation, replay protection |
+| `oracle_memory.scaling` | Consistent hash ring, backpressure, TTL, shard routing |
+| `oracle_memory.benchmark` | Benchmark suite — shared vs isolated memory comparison |
+| `oracle_memory.integrations` | Drop-in adapters for LangChain, LlamaIndex, AutoGen |
 
 ## Quick start
 
@@ -197,6 +240,54 @@ All node ↔ orchestrator messages use `ProtocolMessage` with HMAC-SHA256 signin
 - **Conflict resolution** — contradicting claims get detected and resolved
 - **Tokens** — reward useful contributions, penalize hallucinations
 
+## Benchmark: shared memory vs isolated RAG
+
+```python
+from oracle_memory.benchmark import run_benchmark
+result = run_benchmark()
+print(result.summary())
+```
+
+```
+============================================================
+BENCHMARK: Shared Memory vs Isolated RAG
+============================================================
+[Isolated (no sharing)] accuracy=50.0% avg_recall=0.05ms ingest=0.80ms (5/10 correct)
+[Shared (oracle-memory)] accuracy=100.0% avg_recall=0.03ms ingest=0.60ms (10/10 correct)
+Improvement: +100.0% accuracy
+============================================================
+```
+
+## Security
+
+```python
+from oracle_memory import SecureTransport, ProtocolMessage
+
+# Key rotation + replay protection in one object
+transport = SecureTransport(initial_secret="my-secret-v1")
+
+msg = ProtocolMessage(message_type="memory_claim", node_id="node-a")
+transport.prepare(msg)        # signs with current key
+assert transport.accept(msg)   # verifies signature + checks replay
+assert not transport.accept(msg)  # replay rejected!
+
+transport.rotate_key("my-secret-v2")  # old messages still verify
+```
+
+## Scaling
+
+```python
+from oracle_memory import ShardRouter
+
+router = ShardRouter(replication_factor=3)
+router.add_node("node-a")
+router.add_node("node-b")
+router.add_node("node-c")
+
+info = router.register_claim("claim-123", ttl_seconds=86400)
+print(info)  # {shard_nodes: ["node-b", "node-c", "node-a"], expires_at: ...}
+```
+
 ## Roadmap
 
 1. Real embeddings / vector retrieval (ChromaDB, pgvector)
@@ -205,6 +296,10 @@ All node ↔ orchestrator messages use `ProtocolMessage` with HMAC-SHA256 signin
 4. Dashboard for quality metrics and token leaderboard
 5. Bridge to crypto tokens (ERC-20 / Cosmos)
 6. MCP (Model Context Protocol) transport adapter
+7. Governance / voting mechanisms for claim disputes
+8. GDPR compliance hooks (right to erasure, data export)
+9. Streaming / real-time sync via WebSocket transport
+10. Formal protocol specification (RFC-style)
 
 ## What problem this solves
 
@@ -294,4 +389,9 @@ It sits on top of MemPalace (or any local memory store) and adds:
 `AutoGen shared memory` · `CrewAI memory` · `multi-agent memory` ·
 `persistent agent memory` · `knowledge marketplace` · `episodic memory LLM` ·
 `continual learning` · `Moltbook` · `OpenClaw` · `vector database` ·
-`P2P knowledge sharing` · `decentralized inference` · `agent swarm memory`
+`P2P knowledge sharing` · `decentralized inference` · `agent swarm memory` ·
+`MemOS` · `memory infrastructure` · `key rotation` · `replay protection` ·
+`consistent hashing` · `backpressure` · `claim TTL` · `shard routing` ·
+`LangChain plugin` · `LlamaIndex plugin` · `AutoGen memory backend` ·
+`one-liner API` · `drop-in memory` · `benchmark suite` · `shared vs isolated` ·
+`memory coordination layer` · `Kubernetes for AI memory`

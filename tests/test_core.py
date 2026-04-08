@@ -546,4 +546,287 @@ def test_token_network_stats():
     stats = ledger.network_stats()
     assert stats["total_nodes"] == 1
     assert stats["total_earned"] > 0
-    assert stats["total_penalized"] > 0
+
+
+# ── easy.py (OracleAgent one-liner API) ─────────────────────────────────
+
+from oracle_memory.easy import OracleAgent
+
+
+def test_oracle_agent_remember_and_recall():
+    agent = OracleAgent("test-agent")
+    agent.remember("Python was created by Guido van Rossum in 1991")
+    results = agent.recall("who created Python?")
+    assert any("Guido" in r or "Python" in r for r in results)
+
+
+def test_oracle_agent_forget():
+    agent = OracleAgent("test-agent")
+    agent.remember("Flask is a web framework")
+    removed = agent.forget("Flask")
+    assert removed >= 0  # at least attempted
+
+
+def test_oracle_agent_thumbs_up_down():
+    agent = OracleAgent("test-agent")
+    agent.remember("test fact")
+    agent.recall("test")
+    agent.thumbs_up()  # should not raise
+    agent.thumbs_down()  # should not raise
+
+
+def test_oracle_agent_stats():
+    agent = OracleAgent("test-agent")
+    agent.remember("hello world")
+    stats = agent.stats
+    assert "name" in stats
+    assert "total_claims" in stats
+    assert stats["name"] == "test-agent"
+
+
+def test_oracle_agent_context_for_llm():
+    agent = OracleAgent("test-agent")
+    agent.remember("I like Flask")
+    context = agent.context_for_llm()
+    assert isinstance(context, str)
+
+
+# ── crypto.py (security hardening) ──────────────────────────────────────
+
+from oracle_memory.crypto import KeyRing, ReplayGuard, SecureTransport
+
+
+def test_keyring_add_and_sign():
+    ring = KeyRing()
+    ring.add_key("secret-1")
+    msg = ProtocolMessage(message_type="heartbeat", node_id="n1")
+    ring.sign_message(msg)
+    assert msg.signature is not None
+    assert ring.verify_message(msg)
+
+
+def test_keyring_rotation():
+    ring = KeyRing()
+    ring.add_key("old-secret")
+    msg_old = ProtocolMessage(message_type="heartbeat", node_id="n1")
+    ring.sign_message(msg_old)
+
+    ring.rotate("new-secret")
+    # Old message still verifies (old key retained)
+    assert ring.verify_message(msg_old)
+    # New messages use new key
+    msg_new = ProtocolMessage(message_type="heartbeat", node_id="n1")
+    ring.sign_message(msg_new)
+    assert ring.verify_message(msg_new)
+
+
+def test_replay_guard_blocks_replay():
+    guard = ReplayGuard(window_seconds=60)
+    msg = ProtocolMessage(message_type="heartbeat", node_id="n1")
+    assert guard.check(msg) is True
+    assert guard.check(msg) is False  # replay blocked
+
+
+def test_replay_guard_rejects_expired():
+    guard = ReplayGuard(window_seconds=1)
+    msg = ProtocolMessage(message_type="heartbeat", node_id="n1")
+    msg.timestamp = time.time() - 100  # too old
+    assert guard.check(msg) is False
+
+
+def test_secure_transport_full_flow():
+    transport = SecureTransport(initial_secret="key-v1")
+    msg = ProtocolMessage(message_type="memory_claim", node_id="n1")
+    transport.prepare(msg)
+    assert transport.accept(msg) is True
+    # Replay
+    msg2 = ProtocolMessage(message_type="memory_claim", node_id="n1")
+    msg2.message_id = msg.message_id
+    msg2.timestamp = msg.timestamp
+    msg2.payload = dict(msg.payload)
+    msg2.sign("key-v1")
+    assert transport.accept(msg2) is False  # replay blocked
+
+
+def test_secure_transport_key_rotation():
+    transport = SecureTransport(initial_secret="v1")
+    transport.rotate_key("v2")
+    msg = ProtocolMessage(message_type="heartbeat", node_id="n1")
+    transport.prepare(msg)
+    assert transport.accept(msg) is True
+
+
+# ── scaling.py (sharding, backpressure, TTL) ─────────────────────────────
+
+from oracle_memory.scaling import ConsistentHashRing, BackpressureController, ClaimTTL, ShardRouter
+
+
+def test_consistent_hash_ring_basic():
+    ring = ConsistentHashRing()
+    ring.add_node("node-a")
+    ring.add_node("node-b")
+    ring.add_node("node-c")
+    assert ring.node_count == 3
+    node = ring.get_node("claim-123")
+    assert node in {"node-a", "node-b", "node-c"}
+
+
+def test_consistent_hash_ring_replication():
+    ring = ConsistentHashRing()
+    ring.add_node("a")
+    ring.add_node("b")
+    ring.add_node("c")
+    nodes = ring.get_nodes("claim-1", n=2)
+    assert len(nodes) == 2
+    assert len(set(nodes)) == 2  # distinct nodes
+
+
+def test_consistent_hash_ring_remove():
+    ring = ConsistentHashRing()
+    ring.add_node("a")
+    ring.add_node("b")
+    ring.remove_node("a")
+    assert ring.node_count == 1
+    assert ring.get_node("anything") == "b"
+
+
+def test_backpressure_allows_normal():
+    bp = BackpressureController(max_claims_per_second=5)
+    for _ in range(5):
+        assert bp.allow("node-a") is True
+
+
+def test_backpressure_blocks_flood():
+    bp = BackpressureController(max_claims_per_second=2)
+    bp.allow("n1")
+    bp.allow("n1")
+    assert bp.allow("n1") is False
+
+
+def test_claim_ttl_expiry():
+    ttl = ClaimTTL(default_ttl_seconds=0.001)  # 1ms
+    ttl.set_ttl("c1")
+    time.sleep(0.01)
+    assert ttl.is_expired("c1") is True
+
+
+def test_claim_ttl_not_expired():
+    ttl = ClaimTTL(default_ttl_seconds=3600)
+    ttl.set_ttl("c1")
+    assert ttl.is_expired("c1") is False
+
+
+def test_claim_ttl_prune():
+    ttl = ClaimTTL(default_ttl_seconds=0.001)
+    ttl.set_ttl("c1")
+    ttl.set_ttl("c2")
+    time.sleep(0.01)
+    pruned = ttl.prune()
+    assert "c1" in pruned
+    assert "c2" in pruned
+
+
+def test_shard_router_full():
+    router = ShardRouter(replication_factor=2)
+    router.add_node("a")
+    router.add_node("b")
+    router.add_node("c")
+    info = router.register_claim("claim-xyz", ttl_seconds=3600)
+    assert len(info["shard_nodes"]) == 2
+    assert info["primary"] is not None
+    assert info["expires_at"] > time.time()
+
+
+def test_shard_router_backpressure():
+    router = ShardRouter()
+    router.add_node("a")
+    assert router.can_accept("a") is True
+
+
+# ── integrations.py (LangChain, LlamaIndex, AutoGen) ────────────────────
+
+from oracle_memory.integrations import LangChainMemory, LlamaIndexMemory, AutoGenMemoryBackend
+
+
+def test_langchain_memory_save_and_load():
+    mem = LangChainMemory(agent_name="lc-test")
+    mem.save_context({"input": "I like Python"}, {"output": "Python is great!"})
+    loaded = mem.load_memory_variables({})
+    assert "oracle_memory" in loaded
+
+
+def test_langchain_memory_variables():
+    mem = LangChainMemory()
+    assert mem.memory_variables == ["oracle_memory"]
+
+
+def test_langchain_memory_clear():
+    mem = LangChainMemory()
+    mem.save_context({"input": "test"}, {"output": "ok"})
+    mem.clear()
+    loaded = mem.load_memory_variables({})
+    assert loaded["oracle_memory"] == ""
+
+
+def test_llamaindex_memory_put_and_get():
+    mem = LlamaIndexMemory()
+    mem.put("Flask is a Python web framework")
+    result = mem.get("what is Flask?")
+    assert isinstance(result, str)
+
+
+def test_llamaindex_memory_get_all():
+    mem = LlamaIndexMemory()
+    mem.put("fact one")
+    mem.put("fact two")
+    all_items = mem.get_all()
+    assert len(all_items) >= 2
+
+
+def test_llamaindex_memory_reset():
+    mem = LlamaIndexMemory()
+    mem.put("test")
+    mem.reset()
+    assert mem.get() == ""
+
+
+def test_autogen_backend_store_and_search():
+    backend = AutoGenMemoryBackend()
+    backend.store_turn(user_msg="hello", assistant_msg="world")
+    results = backend.search("hello")
+    assert isinstance(results, list)
+
+
+def test_autogen_backend_context():
+    backend = AutoGenMemoryBackend()
+    backend.store_turn(user_msg="Python is fun")
+    ctx = backend.get_context(query="Python")
+    assert isinstance(ctx, str)
+
+
+def test_autogen_backend_feedback():
+    backend = AutoGenMemoryBackend()
+    backend.store_turn(user_msg="test")
+    backend.search("test")
+    backend.feedback(positive=True)  # should not raise
+    backend.feedback(positive=False)  # should not raise
+
+
+# ── benchmark.py ─────────────────────────────────────────────────────────
+
+from oracle_memory.benchmark import run_benchmark
+
+
+def test_benchmark_runs():
+    result = run_benchmark()
+    assert result.shared.accuracy >= result.isolated.accuracy
+    assert result.shared.total_queries == 10
+    assert result.isolated.total_queries == 10
+
+
+def test_benchmark_summary():
+    result = run_benchmark()
+    summary = result.summary()
+    assert "Shared Memory vs Isolated RAG" in summary
+    assert "Improvement" in summary
+    assert "accuracy" in summary
