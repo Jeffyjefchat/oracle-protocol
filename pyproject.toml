@@ -5,26 +5,40 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "oracle-memory"
 version = "0.1.0"
-description = "Federated memory layer on top of MemPalace — private-first extracted facts with cross-node sync and quality-driven retrieval"
+description = "Collective knowledge network: private-first extracted memory with federation protocol, quality auto-tuning, and MemPalace adapter"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
-  { name = "Side OAuth Team" }
+  { name = "Jeffyjefchat" }
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 keywords = [
     "ai", "memory", "llm", "mempalace", "federation",
-    "rag", "chromadb", "quality", "orchestrator",
+    "rag", "collective-intelligence", "knowledge-network",
+    "quality-tuning", "orchestrator", "token-network",
 ]
-dependencies = [
-    "mempalace>=3.0",
-]
+dependencies = []
 
 [project.optional-dependencies]
+mempalace = ["mempalace>=3.0"]
 dev = ["pytest>=7.0", "pytest-cov>=4.0"]
 
 [project.urls]
-Repository = "https://github.com/user/oracle-memory"
+Homepage = "https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace"
+Repository = "https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace"
+Issues = "https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace/issues"
 
 [tool.setuptools]
 packages = ["oracle_memory"]
