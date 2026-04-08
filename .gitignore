@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+.venv/
+dist/
+build/
+.pytest_cache/
+.tox/
+_test_output.txt
+_run_tests.py
+_test.txt
+_import_test.py
+_import_result.txt

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oracle-memory"
+version = "0.1.0"
+description = "Federated memory layer on top of MemPalace — private-first extracted facts with cross-node sync and quality-driven retrieval"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+  { name = "Side OAuth Team" }
+]
+keywords = [
+    "ai", "memory", "llm", "mempalace", "federation",
+    "rag", "chromadb", "quality", "orchestrator",
+]
+dependencies = [
+    "mempalace>=3.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-cov>=4.0"]
+
+[project.urls]
+Repository = "https://github.com/user/oracle-memory"
+
+[tool.setuptools]
+packages = ["oracle_memory"]
