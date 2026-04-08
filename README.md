@@ -244,6 +244,11 @@ It sits on top of MemPalace (or any local memory store) and adds:
 | Project | What it does | What's missing |
 |---------|-------------|----------------|
 | [MemPalace](https://github.com/milla-jovovich/mempalace) | Local structured memory for LLMs | No networking, no tokens, no federation |
+| [Unibase](https://unibase.io/) | Blockchain AI memory layer (UB token) | Web3-only; requires blockchain; no local-first option; no quality auto-tuning |
+| [MemoryGr.id](https://memorygr.id/) | Open-source AI society memory | Individual + collective memory for agents; no token incentives, no wire protocol |
+| [Distributed Knowledge (OpenMined)](https://openmined.org/) | Federated LLM network, Ollama-compatible | Privacy-focused federation; no structured memory schema, no reputation system |
+| [Panini](https://arxiv.org/) | Structured Memory via GSW (question-answer networks) | Research concept; write-time compute for RAG; no sharing protocol or tokens |
+| [LLM Wiki](https://github.com/) | Local LLM → auto-generated wiki | Document ingestion pipeline; single-user, no federation or incentives |
 | [SingularityNET](https://singularitynet.io/) | Decentralized AI marketplace | Token economy for services, not memory |
 | [Fetch.ai](https://fetch.ai/) | Autonomous agent framework | Agent infra, no shared memory layer |
 | [Ocean Protocol](https://oceanprotocol.com/) | Data marketplace with tokens | Data sharing, not LLM memory |
