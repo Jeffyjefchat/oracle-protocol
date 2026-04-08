@@ -241,21 +241,36 @@ It sits on top of MemPalace (or any local memory store) and adds:
 
 ## How it compares
 
-| Project | What it does | Overlap with this lib |
-|---------|-------------|----------------------|
-| [MemPalace](https://github.com/milla-jovovich/mempalace) | Local structured memory for LLMs | We use it as backend; we add networking |
-| [SingularityNET](https://singularitynet.io/) | Decentralized AI marketplace | Token economy for AI services, not memory |
+| Project | What it does | What's missing |
+|---------|-------------|----------------|
+| [MemPalace](https://github.com/milla-jovovich/mempalace) | Local structured memory for LLMs | No networking, no tokens, no federation |
+| [SingularityNET](https://singularitynet.io/) | Decentralized AI marketplace | Token economy for services, not memory |
 | [Fetch.ai](https://fetch.ai/) | Autonomous agent framework | Agent infra, no shared memory layer |
 | [Ocean Protocol](https://oceanprotocol.com/) | Data marketplace with tokens | Data sharing, not LLM memory |
-| [Allora Network](https://allora.network/) | Collective intelligence via consensus | Closest concept — scoring agent outputs; no memory layer |
+| [Allora Network](https://allora.network/) | Collective intelligence via consensus | Scoring agent outputs; no persistent memory |
 | [Recall Network](https://recall.network/) | Agent competition + ranking | Agent economy, not structured memory sync |
-| [LLMem](https://llmem.com/) | Cross-LLM memory sync | "Dropbox for AI memory" — not tokenized, not a network |
-| [memX](https://github.com/) | Multi-agent real-time shared memory | CRDT sync for coordination, no knowledge economy |
+| [LLMem](https://llmem.com/) | Cross-LLM memory sync | "Dropbox for AI" — not tokenized, not a network |
+| [memX](https://github.com/) | Multi-agent real-time shared memory | CRDT coordination, no knowledge economy |
 | [Mem0](https://mem0.ai/) | Extracted facts for LLMs | Single-user, no federation, no tokens |
+| [LangChain](https://langchain.com/) / [LlamaIndex](https://llamaindex.ai/) | RAG + persistent storage | Framework-level; no multi-node federation or incentives |
+| [AutoGen](https://github.com/microsoft/autogen) / [CrewAI](https://crewai.com/) | Multi-agent toolkits | Shared memory within a run; no persistent cross-node network |
+| [KBLAM](https://arxiv.org/) | Knowledge tokens injected into attention | Research paper; injects KV pairs, no sharing protocol |
+| Moltbook / OpenClaw | Agent memory marketplace concept | Reddit-like social layer; not a structured memory protocol |
 | [NodeGoAI](https://nodegoai.com/) | Distributed GPU compute | Infra layer only, no knowledge sharing |
 
-**None of these** combine all layers: local memory + federation + tokens + trust + standard schema.
-This library does.
+**None of these** combine all layers:
+
+| Layer | This lib | Others |
+|-------|----------|--------|
+| Local structured memory | ✅ MemPalace adapter | Partial (MemPalace, Mem0) |
+| Standard memory format | ✅ `StandardClaim` v1.0 | ❌ No shared schema |
+| Federation protocol | ✅ HMAC-signed messages | ❌ No cross-node protocol |
+| Token incentives | ✅ Reward/penalty ledger | ❌ Experimental at best |
+| Trust + reputation | ✅ Sybil resistance, rate limiting | ❌ Not addressed |
+| Conflict resolution | ✅ 5 strategies | ❌ Not addressed |
+| Provenance tracking | ✅ Origin, confirmations, disputes | ❌ Not addressed |
+| Hallucination defense | ✅ Confidence capped to reputation | ❌ Not addressed |
+| Quality auto-tuning | ✅ Feedback-driven policy updates | ❌ Not addressed |
 
 ## Keywords
 
@@ -269,4 +284,9 @@ This library does.
 `claim provenance` · `reputation system` · `standard memory format` ·
 `knowledge graph` · `Mem0 alternative` · `LLMem alternative` · `memX alternative` ·
 `SingularityNET memory` · `Allora memory` · `Recall Network memory` ·
-`shared intelligence` · `collective context field` · `memory fragments as assets`
+`shared intelligence` · `collective context field` · `memory fragments as assets` ·
+`knowledge tokens` · `KBLAM` · `LangChain memory` · `LlamaIndex memory` ·
+`AutoGen shared memory` · `CrewAI memory` · `multi-agent memory` ·
+`persistent agent memory` · `knowledge marketplace` · `episodic memory LLM` ·
+`continual learning` · `Moltbook` · `OpenClaw` · `vector database` ·
+`P2P knowledge sharing` · `decentralized inference` · `agent swarm memory`
