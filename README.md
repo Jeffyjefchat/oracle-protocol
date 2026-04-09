@@ -2,16 +2,14 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-60%2B%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-92%20passing-brightgreen)]()
+[![PyPI](https://img.shields.io/pypi/v/oracle-mempalace)](https://pypi.org/project/oracle-mempalace/)
 
-**The coordination layer for AI memory.** Also known as **MemOS** — the Kubernetes of LLM memory.
+**A social trust layer that makes AI agents deliver correct information — not hallucinate independently.**
 
-A private-first extracted-memory library with a built-in coordination protocol.
-Each user gets private memory. Extracted facts (not raw conversations) are the
-default storage layer. Nodes federate through an orchestrator that auto-tunes
-retrieval quality — connecting all LLM-powered apps into a collective knowledge network.
+LLMs guess alone and get things wrong. oracle-memory turns them into a social network where agents share verified knowledge, build reputation over time, and penalize bad information at the source. Trust scoring, token incentives, conflict resolution, and federation aren't just features — they're the social primitives that make the network converge toward correct answers.
 
-**17 modules. 60+ tests. Zero required dependencies. One-liner API.**
+**18 modules. 92 tests. Zero required dependencies. One-liner API.**
 
 ## Install
 
@@ -62,7 +60,18 @@ from oracle_memory.integrations import AutoGenMemoryBackend
 backend = AutoGenMemoryBackend(agent_name="coder")
 ```
 
-## Why this exists
+## Why this exists — the social LLM problem
+
+Every LLM hallucinates alone. RAG gives an agent its own documents, but when that agent is wrong, nothing corrects it. There's no feedback loop. No reputation. No consequence for bad answers.
+
+This library treats AI agents like participants in a social network:
+
+- **Agents that give correct information earn reputation and tokens** — they get amplified
+- **Agents that hallucinate lose reputation** — their confidence gets capped and their claims get deprioritized
+- **When agents disagree, the network resolves it** — by confidence, reputation, consensus, recency, or manual review
+- **Correct knowledge propagates; bad knowledge doesn't** — federation spreads verified facts, trust scoring blocks noise
+
+The result: instead of each LLM independently guessing, the network self-corrects toward accurate answers over time.
 
 | Feature | MemPalace | LLMem | memX | Mem0 | **Oracle Memory** |
 |---------|-----------|-------|------|------|-------------------|
@@ -303,12 +312,15 @@ print(info)  # {shard_nodes: ["node-b", "node-c", "node-a"], expires_at: ...}
 
 ## What problem this solves
 
-Every AI assistant says the same thing when asked about collective knowledge networks for LLMs:
+Every AI assistant hallucinates independently. Ask three agents the same question and you might get three different wrong answers, because none of them have a way to verify, share, or correct knowledge socially.
 
-> *"No mature collective knowledge token network for LLM memory exists yet."*
-> *"The pieces exist in fragments but nothing combines them."*
+This library is the social infrastructure that's missing. It makes LLM interactions self-correcting:
 
-**This library is the combination.** Here is the gap analysis and what we solve:
+- One agent learns a fact → every agent in the network benefits
+- An agent that consistently provides wrong answers → loses reputation, gets filtered out
+- Two agents contradict each other → the system resolves it with evidence, not randomness
+
+Here is the gap analysis and what we solve:
 
 | Gap identified | Why it's hard | Our solution |
 |---|---|---|
@@ -320,19 +332,21 @@ Every AI assistant says the same thing when asked about collective knowledge net
 | 🤝 No trust/attribution layer | Who contributed what? | `trust.py` — `ClaimProvenance` tracks origin, confirmations, disputes, retrievals |
 | ⚔️ Conflicting truths | Two nodes disagree | `conflict.py` — detect contradictions, resolve by confidence/reputation/consensus/recency |
 
-This library is the **missing layer between local AI memory and global shared intelligence**.
+This library is the **social layer between isolated LLMs and collective intelligence**.
 It sits on top of MemPalace (or any local memory store) and adds:
-- A wire protocol for nodes to communicate
-- An orchestrator that auto-tunes retrieval quality from real feedback
-- Federation so multiple apps share public knowledge
+- A wire protocol for agents to communicate like participants in a network
+- A trust and reputation system so good agents rise and bad agents get filtered
+- Token incentives that reward correct contributions and penalize hallucinations
+- Federation so verified knowledge spreads — not noise
+- Conflict resolution so disagreements get settled with evidence
 - Private-first design: raw conversations never leave the node
 
 ### Who this is for
 
-- Developers building **LLM-powered apps** that need persistent memory
-- Teams running **multiple AI agents** that should share knowledge
-- Anyone building **collective intelligence systems** with LLMs
-- Projects that use **MemPalace, RAG, or retrieval-augmented generation** and want cross-node sync
+- Developers building **LLM-powered apps** that need agents to give correct answers
+- Teams running **multiple AI agents** that should share verified knowledge, not duplicate hallucinations
+- Anyone building **social AI systems** where agents interact, build reputation, and self-correct
+- Projects that use **MemPalace, RAG, or retrieval-augmented generation** and want cross-node trust + sync
 
 ## How it compares
 
@@ -374,6 +388,7 @@ It sits on top of MemPalace (or any local memory store) and adds:
 
 ## Keywords
 
+`social LLM` · `social AI agents` · `agent trust` · `agent reputation` ·
 `collective knowledge` · `global sharing` · `token network` · `LLM memory` ·
 `MemPalace` · `federation protocol` · `shared memory graph` · `agent memory` ·
 `decentralized AI memory` · `knowledge exchange` · `collective intelligence` ·
@@ -394,4 +409,5 @@ It sits on top of MemPalace (or any local memory store) and adds:
 `consistent hashing` · `backpressure` · `claim TTL` · `shard routing` ·
 `LangChain plugin` · `LlamaIndex plugin` · `AutoGen memory backend` ·
 `one-liner API` · `drop-in memory` · `benchmark suite` · `shared vs isolated` ·
-`memory coordination layer` · `Kubernetes for AI memory`
+`memory coordination layer` · `social trust layer` · `self-correcting AI` ·
+`correct AI answers` · `anti-hallucination network` · `social LLM interactions`

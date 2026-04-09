@@ -1,20 +1,24 @@
-# I Built the Missing Memory Layer for AI Agents — Here's Why Nothing Like It Exists Yet
+# I Built a Social Trust Layer for AI Agents — So They Deliver Correct Information Instead of Hallucinating Alone
 
-**TL;DR:** I built `oracle-memory`, a Python library that gives AI agents persistent memory, lets them share knowledge across nodes, and rewards quality contributions with tokens. 18 modules, 92 tests, zero dependencies. It's open source.
+**TL;DR:** I built `oracle-memory`, a Python library that turns isolated AI agents into a self-correcting social network. Agents share verified knowledge, build reputation, and get penalized for bad information. The network converges toward correct answers. 18 modules, 92 tests, zero dependencies.
+
+```bash
+pip install oracle-mempalace
+```
 
 GitHub: https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace
-
-Live demo running at: https://gpt-mind.gcapay.club/ — a mindmap-powered LLM service built on this stack.
+PyPI: https://pypi.org/project/oracle-mempalace/
+Live demo: https://gpt-mind.gcapay.club/
 
 ---
 
 ## The Problem Every AI Developer Hits
 
-You build an AI agent. It works great. Then the user comes back tomorrow and the agent has forgotten everything.
+AI agents guess alone and get things wrong. Ask three agents the same question — you might get three different wrong answers. Each one hallucinates independently because there's no feedback loop, no reputation, no consequence for bad answers.
 
-You add RAG. Now it remembers — but only for one user, on one machine. Your second agent can't access what the first one learned. Your partner's agent starts from zero. Every node is an island.
+You add RAG. Now the agent retrieves its own documents. But a hallucinating agent looks exactly the same as a reliable one. There's no trust layer. No way for agents to verify each other.
 
-I looked for a library that solves this. Here's what I found:
+I looked for a library that treats agents as social participants — where reputation matters and correct knowledge spreads while bad knowledge gets filtered out. Here's what I found:
 
 - **Mem0** — extracts facts, but single-user, no sharing
 - **LangChain / LlamaIndex** — great RAG frameworks, but no multi-node federation
@@ -23,7 +27,7 @@ I looked for a library that solves this. Here's what I found:
 - **SingularityNET / Fetch.ai** — token economies for AI services, but not for memory
 - **Ocean Protocol** — data marketplace, but not LLM memory
 
-None of them combine persistent memory + federation + token incentives + trust scoring + conflict resolution + a standard schema. So I built it.
+None of them make agents self-correct socially. None combine trust scoring + federation + token incentives + conflict resolution + a standard schema into a system where the network converges toward correct answers. So I built it.
 
 ## What oracle-memory Does
 
@@ -40,9 +44,9 @@ That's the simple API. Under the hood, 18 modules handle:
 
 **Memory:** Private + public claims per user. Facts are extracted, not raw conversations. Content-hashed for deduplication.
 
-**Federation:** Nodes register with an orchestrator. Public claims sync across the network via HMAC-signed protocol messages. Nine message types cover registration, heartbeat, claims, retrieval, policy updates, quality reports, feedback, and conflict notices.
+**Federation:** Agents register with an orchestrator. Verified claims sync across the network via HMAC-signed protocol messages. Nine message types cover registration, heartbeat, claims, retrieval, policy updates, quality reports, feedback, and conflict notices.
 
-**Trust:** Every node earns reputation. Bad actors get throttled. Hallucination sources get penalized. Rate limiting prevents spam. Claims from untrusted nodes get confidence-capped.
+**Trust:** Every agent earns reputation. Agents that give correct information rise. Hallucination sources get penalized and deprioritized. Rate limiting prevents spam. Claims from untrusted agents get confidence-capped.
 
 **Tokens:** Contributing useful knowledge earns tokens. Hallucinations cost tokens. A leaderboard tracks the best contributors. No blockchain required — the ledger runs in the orchestrator. You can wire it to a real token later.
 
@@ -66,15 +70,15 @@ Improvement: +100.0% accuracy
 ============================================================
 ```
 
-When agents share memory, they answer questions the isolated agent can't — because the knowledge exists somewhere in the network, just not on that specific node.
+When agents share verified knowledge through a trust network, they answer questions the isolated agent can't — because correct knowledge surfaces through reputation scoring, even when a specific agent never saw the original information.
 
 ## Who This Is For
 
-- **AI developers** who want persistent memory that survives across sessions
-- **Teams running multiple agents** that should share what they learn
-- **Anyone building collective intelligence systems** with LLMs
-- **Projects using RAG** that want cross-node knowledge sync
-- **Researchers** studying federated AI memory, knowledge graphs, and token incentive design
+- **AI developers** who want agents that deliver correct answers, not just recall their own documents
+- **Teams running multiple agents** that should verify each other's knowledge instead of duplicating hallucinations
+- **Anyone building social AI systems** where agents interact, build reputation, and self-correct
+- **Projects using RAG** that want trust + cross-node knowledge sync
+- **Researchers** studying federated AI memory, social LLM interactions, and token incentive design
 
 ## How It Compares to 19 Alternatives
 
@@ -102,4 +106,4 @@ See it running live: https://gpt-mind.gcapay.club/
 
 ---
 
-**Tags:** collective knowledge, LLM memory, token network, federated AI memory, persistent agent memory, shared memory graph, MemOS, oracle-memory, Mem0 alternative, LangChain memory plugin, LlamaIndex memory, AutoGen memory backend, multi-agent memory, knowledge exchange protocol, decentralized AI memory, RAG federation, retrieval augmented generation, collective intelligence, distributed LLM memory, conversational AI memory, memory infrastructure for AI agents, Kubernetes for AI memory, knowledge tokens, reputation system, hallucination defense, conflict resolution, standard memory format, claim provenance
+**Tags:** social LLM, social AI agents, agent trust, collective knowledge, LLM memory, token network, federated AI memory, persistent agent memory, shared memory graph, oracle-memory, Mem0 alternative, LangChain memory plugin, LlamaIndex memory, AutoGen memory backend, multi-agent memory, knowledge exchange protocol, decentralized AI memory, RAG federation, retrieval augmented generation, collective intelligence, social trust layer, self-correcting AI, anti-hallucination network, social LLM interactions, correct AI answers, reputation system, hallucination defense, conflict resolution, standard memory format, claim provenance
