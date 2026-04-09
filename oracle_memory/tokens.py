@@ -149,6 +149,36 @@ class TokenLedger:
         self.get_balance(node_id).debit(amount, "dispute_lost", claim_id)
         return amount
 
+    # ── Public settlement interface ──
+    # SettlementEngine and adapters should use these instead of
+    # reaching into _config or calling credit()/debit() directly.
+
+    def verdict_amounts(self) -> tuple[float, float]:
+        """Return (reward, penalty) amounts for a dispute verdict.
+
+        This is the public way to ask "how much does a verdict pay/cost?"
+        without reading _config internals.
+        """
+        return (self._config.reward_claim_accepted,
+                self._config.penalty_dispute_lost)
+
+    def settle_winner(self, node_id: str, verdict_id: str,
+                      amount: float | None = None,
+                      reputation: float = 0.5) -> float:
+        """Credit a verdict winner. Uses config default if amount is None."""
+        if amount is None:
+            amount = self._config.reward_claim_accepted * self._multiplier(reputation)
+        self.get_balance(node_id).credit(amount, "verdict_winner", verdict_id)
+        return amount
+
+    def settle_loser(self, node_id: str, verdict_id: str,
+                     amount: float | None = None) -> float:
+        """Debit a verdict loser. Uses config default if amount is None."""
+        if amount is None:
+            amount = self._config.penalty_dispute_lost
+        self.get_balance(node_id).debit(amount, "verdict_loser", verdict_id)
+        return amount
+
     # ── Leaderboard ──
 
     def leaderboard(self, limit: int = 10) -> list[TokenBalance]:

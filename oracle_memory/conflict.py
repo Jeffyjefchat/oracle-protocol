@@ -72,12 +72,54 @@ class Verdict:
     is_final: bool = False
     finalized_at: float = 0.0
 
+    SCHEMA_VERSION: str = field(default="1.0", init=False, repr=False)
+
     def finalize(self) -> None:
         """Mark this verdict as final. Irreversible."""
         if self.is_final:
             return
         self.is_final = True
         self.finalized_at = time.time()
+
+    def to_dict(self) -> dict[str, Any]:
+        """Canonical wire format for federation and persistence."""
+        return {
+            "schema_version": self.SCHEMA_VERSION,
+            "verdict_id": self.verdict_id,
+            "conflict_id": self.conflict_id,
+            "winner_id": self.winner_id,
+            "loser_id": self.loser_id,
+            "winner_claim_id": self.winner_claim_id,
+            "loser_claim_id": self.loser_claim_id,
+            "amounts": {
+                "reward": self.reward_amount,
+                "penalty": self.penalty_amount,
+            },
+            "strategy": self.strategy,
+            "reason": self.reason,
+            "is_final": self.is_final,
+            "finalized_at": self.finalized_at,
+        }
+
+    @staticmethod
+    def from_dict(data: dict[str, Any]) -> Verdict:
+        """Reconstruct a Verdict from its wire format."""
+        amounts = data.get("amounts", {})
+        v = Verdict(
+            verdict_id=data["verdict_id"],
+            conflict_id=data["conflict_id"],
+            winner_id=data["winner_id"],
+            loser_id=data["loser_id"],
+            winner_claim_id=data.get("winner_claim_id", ""),
+            loser_claim_id=data.get("loser_claim_id", ""),
+            reward_amount=amounts.get("reward", data.get("reward_amount", 0.0)),
+            penalty_amount=amounts.get("penalty", data.get("penalty_amount", 0.0)),
+            strategy=data.get("strategy", ""),
+            reason=data.get("reason", ""),
+            is_final=data.get("is_final", False),
+            finalized_at=data.get("finalized_at", 0.0),
+        )
+        return v
 
     @staticmethod
     def create(conflict: Conflict, winner_node: str, loser_node: str,

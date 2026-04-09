@@ -103,8 +103,7 @@ class SettlementEngine:
         else:
             winner_node, loser_node = node_b, node_a
 
-        reward = self._ledger._config.reward_claim_accepted
-        penalty = self._ledger._config.penalty_dispute_lost
+        reward, penalty = self._ledger.verdict_amounts()
 
         verdict = Verdict.create(
             conflict=conflict,
@@ -242,17 +241,14 @@ class SettlementEngine:
                 "Call finalize_verdict() first."
             )
 
-        # Tokens: reward winner
-        self._ledger.get_balance(verdict.winner_id).credit(
-            verdict.reward_amount,
-            "verdict_winner",
-            verdict.verdict_id,
+        # Tokens: reward winner, penalize loser (public ledger API)
+        self._ledger.settle_winner(
+            verdict.winner_id, verdict.verdict_id,
+            amount=verdict.reward_amount,
         )
-        # Tokens: penalize loser
-        self._ledger.get_balance(verdict.loser_id).debit(
-            verdict.penalty_amount,
-            "verdict_loser",
-            verdict.verdict_id,
+        self._ledger.settle_loser(
+            verdict.loser_id, verdict.verdict_id,
+            amount=verdict.penalty_amount,
         )
 
         # Reputation: boost winner, dock loser

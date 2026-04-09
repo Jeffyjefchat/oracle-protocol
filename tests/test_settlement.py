@@ -478,6 +478,7 @@ def test_pre_hook_allows_when_true():
     detector = ConflictDetector()
     conflict = detector.check_pair(claim_a, claim_b)
 
+
     verdict = engine.propose_verdict(
         conflict, claim_a, claim_b,
         node_a="node-a", node_b="node-b",
@@ -532,3 +533,137 @@ def test_post_hooks_fire_after_finalize():
     engine.finalize_verdict(verdict)
     assert len(post_calls) == 1
     assert post_calls[0].is_final is True
+
+
+# ── Verdict serialization (v0.4.0) ─────────────────────────────────────
+
+def test_verdict_to_dict():
+    """to_dict produces canonical wire format with nested amounts."""
+    conflict = Conflict(
+        conflict_id="c-ser", claim_a_id="ca", claim_b_id="cb", reason="test",
+    )
+    conflict.resolve("ca", "confidence_wins")
+    verdict = Verdict.create(conflict, "alice", "bob", reward=1.0, penalty=-3.0)
+
+    d = verdict.to_dict()
+    assert d["schema_version"] == "1.0"
+    assert d["verdict_id"] == verdict.verdict_id
+    assert d["conflict_id"] == "c-ser"
+    assert d["winner_id"] == "alice"
+    assert d["loser_id"] == "bob"
+    assert d["amounts"]["reward"] == 1.0
+    assert d["amounts"]["penalty"] == -3.0
+    assert d["strategy"] == "confidence_wins"
+    assert d["reason"] == "test"
+    assert d["is_final"] is True
+    assert d["finalized_at"] > 0
+
+
+def test_verdict_from_dict_roundtrip():
+    """to_dict → from_dict preserves all fields."""
+    conflict = Conflict(
+        conflict_id="c-rt", claim_a_id="x", claim_b_id="y", reason="dup",
+    )
+    conflict.resolve("x", "newer_wins")
+    original = Verdict.create(conflict, "node-1", "node-2", reward=2.0, penalty=-1.5)
+
+    rebuilt = Verdict.from_dict(original.to_dict())
+
+    assert rebuilt.verdict_id == original.verdict_id
+    assert rebuilt.conflict_id == original.conflict_id
+    assert rebuilt.winner_id == original.winner_id
+    assert rebuilt.loser_id == original.loser_id
+    assert rebuilt.winner_claim_id == original.winner_claim_id
+    assert rebuilt.loser_claim_id == original.loser_claim_id
+    assert rebuilt.reward_amount == original.reward_amount
+    assert rebuilt.penalty_amount == original.penalty_amount
+    assert rebuilt.strategy == original.strategy
+    assert rebuilt.reason == original.reason
+    assert rebuilt.is_final == original.is_final
+    assert rebuilt.finalized_at == original.finalized_at
+
+
+def test_verdict_from_dict_handles_flat_amounts():
+    """from_dict accepts the legacy flat reward_amount/penalty_amount keys."""
+    data = {
+        "verdict_id": "verdict-legacy",
+        "conflict_id": "c-legacy",
+        "winner_id": "w",
+        "loser_id": "l",
+        "reward_amount": 5.0,
+        "penalty_amount": -2.0,
+        "is_final": True,
+        "finalized_at": 100.0,
+    }
+    v = Verdict.from_dict(data)
+    assert v.reward_amount == 5.0
+    assert v.penalty_amount == -2.0
+
+
+# ── Public ledger boundary (v0.4.0) ────────────────────────────────────
+
+def test_ledger_verdict_amounts():
+    """verdict_amounts() returns (reward, penalty) from config."""
+    ledger = TokenLedger()
+    reward, penalty = ledger.verdict_amounts()
+    assert reward == 1.0   # TokenConfig default
+    assert penalty == -3.0  # TokenConfig default
+
+
+def test_ledger_settle_winner():
+    """settle_winner() credits the correct amount."""
+    ledger = TokenLedger()
+    amount = ledger.settle_winner("winner-node", "verdict-1")
+    assert amount == 1.0  # default config, default reputation
+    assert ledger.get_balance("winner-node").balance == 1.0
+    txn = ledger.get_balance("winner-node").transactions[-1]
+    assert txn["reason"] == "verdict_winner"
+    assert txn["ref"] == "verdict-1"
+
+
+def test_ledger_settle_winner_custom_amount():
+    """settle_winner() uses explicit amount when provided."""
+    ledger = TokenLedger()
+    amount = ledger.settle_winner("w", "v-1", amount=7.5)
+    assert amount == 7.5
+    assert ledger.get_balance("w").balance == 7.5
+
+
+def test_ledger_settle_loser():
+    """settle_loser() debits the correct amount."""
+    ledger = TokenLedger()
+    amount = ledger.settle_loser("loser-node", "verdict-2")
+    assert amount == -3.0  # default config
+    assert ledger.get_balance("loser-node").balance == -3.0
+    txn = ledger.get_balance("loser-node").transactions[-1]
+    assert txn["reason"] == "verdict_loser"
+    assert txn["ref"] == "verdict-2"
+
+
+def test_settle_conflict_uses_public_ledger_api():
+    """Full settle_conflict flow uses settle_winner/settle_loser under the hood."""
+    resolver = ConflictResolver()
+    ledger = TokenLedger()
+    rep = ReputationEngine()
+    engine = SettlementEngine(resolver, ledger, rep)
+
+    claim_a, claim_b = _make_test_claims()
+    detector = ConflictDetector()
+    conflict = detector.check_pair(claim_a, claim_b)
+
+    verdict = engine.settle_conflict(
+        conflict, claim_a, claim_b,
+        node_a="node-a", node_b="node-b",
+    )
+    assert verdict is not None
+    assert verdict.is_final is True
+
+    # Winner got credited via settle_winner
+    winner_bal = ledger.get_balance(verdict.winner_id)
+    assert winner_bal.balance > 0
+    assert winner_bal.transactions[-1]["reason"] == "verdict_winner"
+
+    # Loser got debited via settle_loser
+    loser_bal = ledger.get_balance(verdict.loser_id)
+    assert loser_bal.balance < 0
+    assert loser_bal.transactions[-1]["reason"] == "verdict_loser"
