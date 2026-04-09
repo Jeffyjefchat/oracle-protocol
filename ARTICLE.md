@@ -87,7 +87,7 @@ The full comparison table is in the [README](README.md).
 ## Try It
 
 ```bash
-pip install git+https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace.git
+pip install oracle-mempalace
 ```
 
 ```python

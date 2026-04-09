@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "oracle-memory"
+name = "oracle-mempalace"
 version = "0.1.0"
 description = "Collective knowledge network: private-first extracted memory with federation protocol, quality auto-tuning, and MemPalace adapter"
 readme = "README.md"

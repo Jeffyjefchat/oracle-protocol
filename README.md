@@ -17,7 +17,7 @@ retrieval quality — connecting all LLM-powered apps into a collective knowledg
 
 ```bash
 # From GitHub (latest)
-pip install git+https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace.git
+pip install oracle-mempalace
 
 # With MemPalace backend support
 pip install "oracle-memory[mempalace] @ git+https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace.git"
