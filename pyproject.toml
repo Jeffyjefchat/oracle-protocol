@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "oracle-mempalace"
-version = "0.1.0"
+version = "0.2.0"
 description = "Collective knowledge network: private-first extracted memory with federation protocol, quality auto-tuning, and MemPalace adapter"
 readme = "README.md"
 requires-python = ">=3.9"

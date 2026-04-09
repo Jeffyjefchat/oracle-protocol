@@ -5,6 +5,7 @@ from .easy import OracleAgent
 from .federation import FederationClient, FederationRegistry
 from .integrations import LangChainMemory, LlamaIndexMemory, AutoGenMemoryBackend
 from .mempalace_adapter import MemPalaceAdapter
+from .monitor import NetworkMonitor, NetworkSnapshot, check_monitor_auth, render_monitor_html
 from .models import MemoryClaim, PalaceCoordinate
 from .protocol import ProtocolMessage
 from .quality import QualityEvent, QualityTracker
@@ -14,10 +15,14 @@ from .service import OracleMemoryService
 from .store import InMemoryMemoryStore, MemoryStore, MemPalaceStore
 from .tokens import TokenLedger, TokenConfig, TokenBalance
 from .trust import ReputationEngine, NodeReputation, ClaimProvenance
+from .version import check_for_updates, CURRENT_VERSION
 
 __all__ = [
     # Easy API (one-liner)
     "OracleAgent",
+    # Version
+    "check_for_updates",
+    "CURRENT_VERSION",
     # Models
     "MemoryClaim",
     "PalaceCoordinate",
@@ -69,4 +74,9 @@ __all__ = [
     "LangChainMemory",
     "LlamaIndexMemory",
     "AutoGenMemoryBackend",
+    # Network monitor
+    "NetworkMonitor",
+    "NetworkSnapshot",
+    "check_monitor_auth",
+    "render_monitor_html",
 ]
