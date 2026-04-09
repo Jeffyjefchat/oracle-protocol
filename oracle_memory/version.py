@@ -1,4 +1,4 @@
-"""Version check — notify users when a newer oracle-mempalace is available on PyPI."""
+"""Version check — notify users when a newer oracle-protocol release is available on PyPI."""
 from __future__ import annotations
 
 import json
@@ -8,7 +8,7 @@ from urllib.error import URLError
 
 __all__ = ["check_for_updates", "CURRENT_VERSION"]
 
-CURRENT_VERSION = "0.4.0"
+CURRENT_VERSION = "1.0.0"
 _PYPI_URL = "https://pypi.org/pypi/oracle-mempalace/json"
 
 
@@ -18,7 +18,7 @@ def _parse_version(v: str) -> tuple[int, ...]:
 
 
 def check_for_updates(timeout: float = 3.0, warn: bool = True) -> dict[str, str]:
-    """Check PyPI for a newer version of oracle-mempalace.
+    """Check PyPI for a newer version of oracle-protocol.
 
     Returns a dict with 'current', 'latest', and 'update_available' keys.
     Never raises — returns gracefully on network errors.
@@ -46,7 +46,7 @@ def check_for_updates(timeout: float = 3.0, warn: bool = True) -> dict[str, str]
             result["update_command"] = "pip install --upgrade oracle-mempalace"
             if warn:
                 warnings.warn(
-                    f"oracle-mempalace {latest} is available (you have {CURRENT_VERSION}). "
+                    f"oracle-protocol {latest} is available (you have {CURRENT_VERSION}). "
                     f"Run: pip install --upgrade oracle-mempalace",
                     stacklevel=2,
                 )

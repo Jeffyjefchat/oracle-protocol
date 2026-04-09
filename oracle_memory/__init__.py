@@ -4,7 +4,7 @@ from .crypto import KeyRing, ReplayGuard, SecureTransport
 from .easy import OracleAgent
 from .federation import FederationClient, FederationRegistry
 from .integrations import LangChainMemory, LlamaIndexMemory, AutoGenMemoryBackend
-from .mempalace_adapter import MemPalaceAdapter
+from .palace_adapter import PalaceAdapter
 from .monitor import NetworkMonitor, NetworkSnapshot, check_monitor_auth, render_monitor_html
 from .models import MemoryClaim, PalaceCoordinate
 from .protocol import ProtocolMessage
@@ -13,7 +13,7 @@ from .scaling import ConsistentHashRing, BackpressureController, ClaimTTL, Shard
 from .schema import StandardClaim, validate_claim, SCHEMA_VERSION
 from .service import OracleMemoryService
 from .settlement import SettlementEngine
-from .store import InMemoryMemoryStore, MemoryStore, MemPalaceStore
+from .store import InMemoryMemoryStore, MemoryStore, PalaceStore
 from .tokens import TokenLedger, TokenConfig, TokenBalance
 from .trust import ReputationEngine, NodeReputation, ClaimProvenance
 from .version import check_for_updates, CURRENT_VERSION
@@ -32,8 +32,8 @@ __all__ = [
     # Stores
     "InMemoryMemoryStore",
     "MemoryStore",
-    "MemPalaceStore",
-    "MemPalaceAdapter",
+    "PalaceStore",
+    "PalaceAdapter",
     # Protocol
     "ProtocolMessage",
     # Orchestration
@@ -84,3 +84,7 @@ __all__ = [
     "check_monitor_auth",
     "render_monitor_html",
 ]
+
+# Backward-compat aliases (will be removed in a future version)
+MemPalaceAdapter = PalaceAdapter
+MemPalaceStore = PalaceStore

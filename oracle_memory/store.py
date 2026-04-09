@@ -130,17 +130,17 @@ class InMemoryMemoryStore(MemoryStore):
         return [claim for _, claim in scored[:limit]]
 
 
-class MemPalaceStore(MemoryStore):
+class PalaceStore(MemoryStore):
     """
-    Store backed by a real MemPalace ChromaDB palace.
+    Store backed by a palace ChromaDB backend.
 
-    Stores claims as drawers, searches via MemPalace's semantic search.
-    Falls back gracefully if mempalace is not installed.
+    Stores claims as drawers, searches via semantic search.
+    Falls back gracefully if the palace backend is not installed.
     """
 
     def __init__(self, palace_path: str, wing: str = "oracle") -> None:
-        from .mempalace_adapter import MemPalaceAdapter
-        self._adapter = MemPalaceAdapter(palace_path=palace_path, wing=wing)
+        from .palace_adapter import PalaceAdapter
+        self._adapter = PalaceAdapter(palace_path=palace_path, wing=wing)
 
     def save_claim(self, claim: MemoryClaim) -> MemoryClaim:
         self._adapter.add_claim(claim)

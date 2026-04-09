@@ -6,7 +6,7 @@ This module defines one. Every claim, regardless of source, gets
 normalized into this format before entering the network.
 
 Compatible with:
-- MemPalace (wings/halls/rooms → coordinates)
+- Palace coordinates (wings/halls/rooms)
 - Mem0 (extracted facts → claims)
 - Memori (semantic triples → claim + provenance)
 - MCP (Model Context Protocol → transport)
@@ -60,7 +60,7 @@ class StandardClaim:
     confirmations: int = 0
     disputes: int = 0
 
-    # Location in MemPalace space (optional)
+    # Location in palace coordinate space (optional)
     wing: str = ""
     hall: str = ""
     room: str = ""
@@ -113,22 +113,25 @@ def validate_claim(claim: StandardClaim) -> list[str]:
 
 # ── Adapters from other formats ──
 
-def from_mempalace_memory(entry: dict[str, Any], user_id: str = "",
-                          node_id: str = "") -> StandardClaim:
-    """Convert a MemPalace memory entry to StandardClaim."""
+def from_palace_memory(entry: dict[str, Any], user_id: str = "",
+                       node_id: str = "") -> StandardClaim:
+    """Convert a palace memory entry to StandardClaim."""
     return StandardClaim(
         claim_id=entry.get("id", ""),
         content=entry.get("text", entry.get("content", "")),
-        memory_type=_map_mempalace_type(entry.get("hall", "")),
+        memory_type=_map_palace_type(entry.get("hall", "")),
         visibility="private",
         user_id=user_id,
         source_node_id=node_id,
-        source_kind="mempalace",
+        source_kind="palace",
         confidence=entry.get("score", 0.6),
         wing=entry.get("wing", ""),
         hall=entry.get("hall", ""),
         room=entry.get("room", ""),
     )
+
+# Backward-compat alias
+from_mempalace_memory = from_palace_memory
 
 
 def from_mem0_fact(fact: dict[str, Any], user_id: str = "",
@@ -161,8 +164,8 @@ def from_semantic_triple(subject: str, predicate: str, obj: str,
     )
 
 
-def _map_mempalace_type(hall: str) -> str:
-    """Map MemPalace hall names to canonical types."""
+def _map_palace_type(hall: str) -> str:
+    """Map palace hall names to canonical types."""
     mapping = {
         "facts": "general",
         "events": "event",

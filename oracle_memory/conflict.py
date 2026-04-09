@@ -172,25 +172,60 @@ class ConflictDetector:
         return list(self._conflicts)
 
     def check_pair(self, claim_a: MemoryClaim, claim_b: MemoryClaim) -> Conflict | None:
-        """Check if two claims conflict."""
-        # Same user, same type, but different content = potential conflict
-        if (claim_a.user_id == claim_b.user_id
-                and claim_a.memory_type == claim_b.memory_type
-                and claim_a.content != claim_b.content
-                and claim_a.claim_id != claim_b.claim_id):
-            # Check for title-level overlap (same topic, different facts)
-            if claim_a.title and claim_b.title and claim_a.title == claim_b.title:
-                return self._register_conflict(
-                    claim_a.claim_id, claim_b.claim_id, "contradicts"
-                )
-            # Check for keyword overlap in content (rough heuristic)
-            words_a = set(claim_a.content.lower().split())
-            words_b = set(claim_b.content.lower().split())
-            overlap = words_a & words_b
-            if len(overlap) > 3 and len(overlap) / max(len(words_a), len(words_b)) > 0.4:
-                return self._register_conflict(
-                    claim_a.claim_id, claim_b.claim_id, "duplicate_diverged"
-                )
+        """Check if two claims conflict.
+
+        Returns a Conflict only when claims genuinely contradict.
+        High-similarity pairs (agreement) are skipped — use
+        check_pair_or_confirm() to get both outcomes.
+        """
+        result = self.check_pair_or_confirm(claim_a, claim_b)
+        if result and result[0] == "conflict":
+            return result[1]
+        return None
+
+    def check_pair_or_confirm(
+        self, claim_a: MemoryClaim, claim_b: MemoryClaim,
+    ) -> tuple[str, Conflict | MemoryClaim] | None:
+        """Check whether two claims conflict or agree.
+
+        Returns:
+            ("conflict", Conflict)   — claims contradict
+            ("confirm", existing)    — new claim confirms existing
+            None                     — unrelated claims
+        """
+        if claim_a.claim_id == claim_b.claim_id:
+            return None
+        if claim_a.user_id != claim_b.user_id:
+            return None
+        if claim_a.memory_type != claim_b.memory_type:
+            return None
+        if claim_a.content == claim_b.content:
+            return None  # exact duplicate, handled by dedup
+
+        words_a = set(claim_a.content.lower().split())
+        words_b = set(claim_b.content.lower().split())
+        if not words_a or not words_b:
+            return None
+        overlap = words_a & words_b
+        overlap_ratio = len(overlap) / max(len(words_a), len(words_b))
+
+        # Same title, different content = contradiction (even if wording is similar)
+        if claim_a.title and claim_b.title and claim_a.title == claim_b.title:
+            return ("conflict", self._register_conflict(
+                claim_a.claim_id, claim_b.claim_id, "contradicts",
+            ))
+
+        # Very high overlap (>75%) without a title clash = agreement / confirmation
+        if overlap_ratio > 0.75:
+            older = claim_a if claim_a.created_at <= claim_b.created_at else claim_b
+            return ("confirm", older)
+
+        # Moderate overlap (>40%) with different content = diverged
+        if len(overlap) > 3 and overlap_ratio > 0.4:
+            return ("conflict", self._register_conflict(
+                claim_a.claim_id, claim_b.claim_id, "duplicate_diverged",
+            ))
+
         return None
 
     def check_against_existing(self, new_claim: MemoryClaim,

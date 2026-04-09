@@ -1,13 +1,13 @@
 """
-MemPalace adapter — wraps the real mempalace package as a backend.
+Palace adapter — wraps an external palace package as a storage backend.
 
-MemPalace provides:
+The palace layer provides:
 - MemoryStack (Layer 0-3): identity, essential story, on-demand, deep search
 - miner.mine(): file mining into ChromaDB
 - searcher.search_memories(): programmatic search
 
 This adapter translates between oracle-memory's MemoryClaim model
-and MemPalace's ChromaDB-based palace storage.
+and the palace's ChromaDB-based storage.
 """
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from .models import MemoryClaim, PalaceCoordinate
 _mempalace_available: bool | None = None
 
 
-def _check_mempalace() -> bool:
+def _check_palace() -> bool:
     global _mempalace_available
     if _mempalace_available is None:
         try:
@@ -36,24 +36,24 @@ def _check_mempalace() -> bool:
 
 
 def _get_chromadb_collection(palace_path: str):
-    """Get or create the mempalace_drawers collection."""
+    """Get or create the palace_drawers collection."""
     import chromadb
     os.makedirs(palace_path, exist_ok=True)
     client = chromadb.PersistentClient(path=palace_path)
     try:
-        return client.get_collection("mempalace_drawers")
+        return client.get_collection("palace_drawers")
     except Exception:
-        return client.create_collection("mempalace_drawers")
+        return client.create_collection("palace_drawers")
 
 
 @dataclass(slots=True)
-class MemPalaceAdapter:
+class PalaceAdapter:
     """
-    Wraps a real MemPalace installation as a storage backend
+    Wraps an external palace installation as a storage backend
     for oracle-memory claims.
 
     Usage:
-        adapter = MemPalaceAdapter(palace_path="~/.mempalace/palace")
+        adapter = PalaceAdapter(palace_path="~/.mempalace/palace")
         adapter.add_claim(claim)
         results = adapter.search("flask oauth", wing="my-project")
     """
@@ -66,8 +66,8 @@ class MemPalaceAdapter:
 
     def add_claim(self, claim: MemoryClaim) -> str:
         """Store a MemoryClaim as a drawer in the MemPalace ChromaDB collection."""
-        if not _check_mempalace():
-            raise ImportError("mempalace is not installed. Run: pip install mempalace")
+        if not _check_palace():
+            raise ImportError("palace backend is not installed")
 
         collection = _get_chromadb_collection(self.palace_path)
         drawer_id = self._drawer_id(claim)
@@ -112,8 +112,8 @@ class MemPalaceAdapter:
         visibility: str | None = None,
     ) -> list[MemoryClaim]:
         """Search the palace and return results as MemoryClaim objects."""
-        if not _check_mempalace():
-            raise ImportError("mempalace is not installed. Run: pip install mempalace")
+        if not _check_palace():
+            raise ImportError("palace backend is not installed")
 
         from mempalace.searcher import search_memories
 
@@ -159,8 +159,8 @@ class MemPalaceAdapter:
 
     def wake_up(self, wing: str | None = None) -> str:
         """Get L0 + L1 wake-up context from MemPalace."""
-        if not _check_mempalace():
-            raise ImportError("mempalace is not installed. Run: pip install mempalace")
+        if not _check_palace():
+            raise ImportError("palace backend is not installed")
 
         from mempalace.layers import MemoryStack
         stack = MemoryStack(palace_path=self.palace_path)
@@ -169,8 +169,8 @@ class MemPalaceAdapter:
     def recall(self, wing: str | None = None, room: str | None = None,
                n_results: int = 10) -> str:
         """L2 on-demand retrieval from MemPalace."""
-        if not _check_mempalace():
-            raise ImportError("mempalace is not installed. Run: pip install mempalace")
+        if not _check_palace():
+            raise ImportError("palace backend is not installed")
 
         from mempalace.layers import MemoryStack
         stack = MemoryStack(palace_path=self.palace_path)
@@ -179,8 +179,8 @@ class MemPalaceAdapter:
     def deep_search(self, query: str, wing: str | None = None,
                     room: str | None = None, n_results: int = 5) -> str:
         """L3 deep semantic search — returns formatted text."""
-        if not _check_mempalace():
-            raise ImportError("mempalace is not installed. Run: pip install mempalace")
+        if not _check_palace():
+            raise ImportError("palace backend is not installed")
 
         from mempalace.layers import MemoryStack
         stack = MemoryStack(palace_path=self.palace_path)
@@ -189,8 +189,8 @@ class MemPalaceAdapter:
     def mine_project(self, project_dir: str, wing: str | None = None,
                      dry_run: bool = False) -> None:
         """Mine a project directory into the palace (delegates to mempalace miner)."""
-        if not _check_mempalace():
-            raise ImportError("mempalace is not installed. Run: pip install mempalace")
+        if not _check_palace():
+            raise ImportError("palace backend is not installed")
 
         from mempalace.miner import mine
         mine(
@@ -203,7 +203,7 @@ class MemPalaceAdapter:
 
     def status(self) -> dict[str, Any]:
         """Get palace status via MemoryStack."""
-        if not _check_mempalace():
+        if not _check_palace():
             return {"error": "mempalace not installed"}
 
         from mempalace.layers import MemoryStack

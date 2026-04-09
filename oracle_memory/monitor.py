@@ -1,6 +1,6 @@
 """Network statistics monitor for Collective Knowledge Global Sharing Token Network.
 
-Aggregates metrics from all oracle-mempalace subsystems into a single dashboard
+Aggregates metrics from all oracle-protocol subsystems into a single dashboard
 view. Provides both a snapshot API and a simple HTTP handler for protected access.
 """
 from __future__ import annotations
@@ -23,7 +23,7 @@ from .conflict import ConflictDetector
 
 @dataclass
 class NetworkSnapshot:
-    """Point-in-time snapshot of the entire oracle-mempalace network."""
+    """Point-in-time snapshot of the entire oracle-protocol network."""
     timestamp: str
     # Claims
     total_claims: int = 0
@@ -99,7 +99,7 @@ class NetworkSnapshot:
 
 
 class NetworkMonitor:
-    """Aggregates all oracle-mempalace subsystems into a single stats view.
+    """Aggregates all oracle-protocol subsystems into a single stats view.
 
     Usage:
         monitor = NetworkMonitor(
@@ -267,7 +267,7 @@ def render_monitor_html(snapshot: NetworkSnapshot) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MemPalace Network Monitor</title>
+<title>Oracle Protocol Network Monitor</title>
 <style>
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
   body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -300,7 +300,7 @@ def render_monitor_html(snapshot: NetworkSnapshot) -> str:
 </head>
 <body>
 <h1>Collective Knowledge Network Monitor</h1>
-<p class="subtitle">MemPalace — Real-time network statistics</p>
+<p class="subtitle">Oracle Protocol — Real-time network statistics</p>
 
 <div class="grid">
   <div class="card">

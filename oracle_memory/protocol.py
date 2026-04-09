@@ -2,8 +2,8 @@
 Oracle Memory Protocol — message types and schemas for node coordination.
 
 This is the wire format between nodes (apps using the library) and the
-orchestrator (your site). Compatible with MemPalace concepts but adds
-quality scoring, retrieval policies, and coordinated memory exchange.
+orchestrator (your site). Adds quality scoring, retrieval policies,
+and coordinated memory exchange.
 """
 from __future__ import annotations
 

@@ -5,7 +5,7 @@ The orchestrator is your site's authority over how memory is retrieved,
 ranked, mixed, and fed into conversations. Every node (app instance)
 checks in, receives policies, and reports quality metrics back.
 
-This is where your platform beats a vanilla MemPalace install:
+This is where your platform beats a vanilla local memory install:
 - smarter retrieval ranking tuned from real user feedback
 - fresher memory injection based on global event signals
 - conversation quality targets enforced per-node

@@ -1,4 +1,4 @@
-"""Tests for oracle_memory core modules (no mempalace/chromadb required)."""
+"""Tests for oracle_memory core modules (no external palace/chromadb required)."""
 import time
 
 from oracle_memory.models import MemoryClaim, PalaceCoordinate
@@ -449,11 +449,41 @@ def test_conflict_dedup():
     assert c1.conflict_id == c2.conflict_id  # same conflict, not re-registered
 
 
+def test_conflict_pair_or_confirm_agreement():
+    """Claims with very high word overlap are confirmations, not conflicts."""
+    detector = ConflictDetector()
+    a = MemoryClaim(user_id="u1", memory_type="general", content="the year is 2026 right now")
+    b = MemoryClaim(user_id="u1", memory_type="general", content="the year is 2026 right now today")
+    result = detector.check_pair_or_confirm(a, b)
+    assert result is not None
+    assert result[0] == "confirm"
+    # check_pair should NOT flag this as conflict
+    assert detector.check_pair(a, b) is None
+
+
+def test_conflict_pair_or_confirm_contradiction():
+    """Claims with same title but different content still conflict."""
+    detector = ConflictDetector()
+    a = MemoryClaim(user_id="u1", memory_type="general", content="Python was created in 1991", title="Python origin")
+    b = MemoryClaim(user_id="u1", memory_type="general", content="Python was created in 1989", title="Python origin")
+    result = detector.check_pair_or_confirm(a, b)
+    assert result is not None
+    assert result[0] == "conflict"
+
+
+def test_conflict_pair_or_confirm_unrelated():
+    """Unrelated claims return None."""
+    detector = ConflictDetector()
+    a = MemoryClaim(user_id="u1", memory_type="general", content="The sky is blue")
+    b = MemoryClaim(user_id="u1", memory_type="general", content="Bananas are yellow fruit")
+    assert detector.check_pair_or_confirm(a, b) is None
+
+
 # ── standard schema ──────────────────────────────────────────────────────
 
 from oracle_memory.schema import (
     StandardClaim, validate_claim, SCHEMA_VERSION,
-    from_mempalace_memory, from_mem0_fact, from_semantic_triple,
+    from_palace_memory, from_mem0_fact, from_semantic_triple,
 )
 
 
@@ -480,9 +510,9 @@ def test_standard_claim_roundtrip():
     assert restored.memory_type == "goal"
 
 
-def test_from_mempalace_memory():
+def test_from_palace_memory():
     entry = {"id": "m1", "text": "User likes Python", "hall": "preferences", "wing": "personal"}
-    claim = from_mempalace_memory(entry, user_id="u1")
+    claim = from_palace_memory(entry, user_id="u1")
     assert claim.memory_type == "preference"
     assert claim.wing == "personal"
 

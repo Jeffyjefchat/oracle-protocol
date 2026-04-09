@@ -1,12 +1,12 @@
 # I Built a Social Trust Layer for AI Agents — So They Deliver Correct Information Instead of Hallucinating Alone
 
-**TL;DR:** I built `oracle-memory`, a Python library that turns isolated AI agents into a self-correcting social network. Agents share verified knowledge, build reputation, and get penalized for bad information. The network converges toward correct answers. 22 modules, 122 tests, zero dependencies.
+**TL;DR:** I built `oracle-memory`, a Python library that turns isolated AI agents into a self-correcting social network. Agents share verified knowledge, build reputation, and get penalized for bad information. The network converges toward correct answers. 22 modules, 125 tests, zero dependencies.
 
 ```bash
 pip install oracle-mempalace
 ```
 
-GitHub: https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace
+GitHub: https://github.com/Jeffyjefchat/oracle-protocol
 PyPI: https://pypi.org/project/oracle-mempalace/
 Live demo: https://gpt-mind.gcapay.club/
 
@@ -23,7 +23,6 @@ I looked for a library that treats agents as social participants — where reput
 - **Mem0** — extracts facts, but single-user, no sharing
 - **LangChain / LlamaIndex** — great RAG frameworks, but no multi-node federation
 - **AutoGen / CrewAI** — multi-agent, but memory dies when the session ends
-- **MemPalace** — structured local memory, but no networking
 - **SingularityNET / Fetch.ai** — token economies for AI services, but not for memory
 - **Ocean Protocol** — data marketplace, but not LLM memory
 
@@ -82,7 +81,7 @@ When agents share verified knowledge through a trust network, they answer questi
 
 ## How It Compares to 19 Alternatives
 
-I compared oracle-memory against MemPalace, Unibase, MemoryGr.id, OpenMined, Panini, LLM Wiki, SingularityNET, Fetch.ai, Ocean Protocol, Allora Network, Recall Network, LLMem, memX, Mem0, LangChain, LlamaIndex, AutoGen, CrewAI, KBLAM, Moltbook, OpenClaw, and NodeGoAI.
+I compared oracle-memory against Unibase, MemoryGr.id, OpenMined, Panini, LLM Wiki, SingularityNET, Fetch.ai, Ocean Protocol, Allora Network, Recall Network, LLMem, memX, Mem0, LangChain, LlamaIndex, AutoGen, CrewAI, KBLAM, Moltbook, OpenClaw, and NodeGoAI.
 
 **None combine all layers:** structured memory + standard schema + federation protocol + token incentives + trust/reputation + conflict resolution + quality auto-tuning + provenance tracking + hallucination defense.
 

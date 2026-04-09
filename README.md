@@ -1,15 +1,24 @@
-# Collective Knowledge Global Sharing Token Network — MemPalace
+# Oracle Protocol
+
+> A trust layer for AI agents — so they deliver correct information instead of hallucinating alone.
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-122%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-125%20passing-brightgreen)]()
 [![PyPI](https://img.shields.io/pypi/v/oracle-mempalace)](https://pypi.org/project/oracle-mempalace/)
 
-**A social trust layer that makes AI agents deliver correct information — not hallucinate independently.**
+Every LLM hallucinates independently. Oracle Protocol fixes that by treating AI agents as participants in a knowledge network — agents that give correct answers earn reputation and tokens, agents that hallucinate lose both. The network self-corrects toward accurate answers over time.
 
-LLMs guess alone and get things wrong. oracle-memory turns them into a social network where agents share verified knowledge, build reputation over time, and penalize bad information at the source. Trust scoring, token incentives, conflict resolution, and federation aren't just features — they're the social primitives that make the network converge toward correct answers.
+**What's inside:**
+- **Federation** — agents share verified knowledge across nodes via HMAC-signed protocol messages
+- **Trust & reputation** — good agents rise, bad agents get throttled (Sybil-resistant)
+- **Token incentives** — useful contributions earn tokens, hallucinations cost tokens
+- **Conflict resolution** — when agents disagree, the network resolves it (5 strategies)
+- **Standard schema** — one universal claim format (`StandardClaim` v1.0) across all backends
+- **Quality auto-tuning** — feedback-driven policy updates per node
+- **Private-first** — raw conversations never leave the node
 
-**22 modules. 122 tests. Zero required dependencies. One-liner API.**
+**22 modules. 125 tests. Zero required dependencies. One-liner API.**
 
 ## Install
 
@@ -18,8 +27,8 @@ LLMs guess alone and get things wrong. oracle-memory turns them into a social ne
 pip install oracle-mempalace
 
 # For development
-git clone https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace.git
-cd collective-knowledge-global-sharing-token-network-mempalace
+git clone https://github.com/Jeffyjefchat/oracle-protocol.git
+cd oracle-protocol
 pip install -e ".[dev]"
 ```
 
@@ -70,20 +79,20 @@ This library treats AI agents like participants in a social network:
 
 The result: instead of each LLM independently guessing, the network self-corrects toward accurate answers over time.
 
-| Feature | MemPalace | LLMem | memX | Mem0 | **Oracle Memory** |
-|---------|-----------|-------|------|------|-------------------|
-| Per-user private memory | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Public/general facts | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Multi-node federation | ❌ | ❌ | ✅ | ❌ | ✅ |
-| Wire protocol (HMAC-signed) | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Quality auto-tuning | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Token incentive layer | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Reputation + Sybil resistance | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Conflict resolution | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Standard memory format | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Provenance tracking | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Hallucination propagation defense | ❌ | ❌ | ❌ | ❌ | ✅ |
-| No raw conversation storage | ❌ | ❌ | ✅ | ❌ | ✅ |
+| Feature | LLMem | memX | Mem0 | **Oracle Protocol** |
+|---------|-------|------|------|---------------------|
+| Per-user private memory | ✅ | ❌ | ✅ | ✅ |
+| Public/general facts | ❌ | ❌ | ❌ | ✅ |
+| Multi-node federation | ❌ | ✅ | ❌ | ✅ |
+| Wire protocol (HMAC-signed) | ❌ | ❌ | ❌ | ✅ |
+| Quality auto-tuning | ❌ | ❌ | ❌ | ✅ |
+| Token incentive layer | ❌ | ❌ | ❌ | ✅ |
+| Reputation + Sybil resistance | ❌ | ❌ | ❌ | ✅ |
+| Conflict resolution | ❌ | ❌ | ❌ | ✅ |
+| Standard memory format | ❌ | ❌ | ❌ | ✅ |
+| Provenance tracking | ❌ | ❌ | ❌ | ✅ |
+| Hallucination propagation defense | ❌ | ❌ | ❌ | ✅ |
+| No raw conversation storage | ❌ | ✅ | ❌ | ✅ |
 
 ## Architecture
 
@@ -133,7 +142,7 @@ The result: instead of each LLM independently guessing, the network self-correct
 | `oracle_memory.conflict` | Conflict detection and resolution between claims |
 | `oracle_memory.schema` | Standard memory format — universal claim schema v1.0 |
 | `oracle_memory.tokens` | Token incentive ledger — rewards, penalties, leaderboard |
-| `oracle_memory.mempalace_adapter` | Adapter boundary for MemPalace integration |
+| `oracle_memory.palace_adapter` | Optional adapter for external palace storage backends |
 | `oracle_memory.easy` | **One-liner API** — `OracleAgent` with 5 methods |
 | `oracle_memory.crypto` | Security hardening — key rotation, replay protection |
 | `oracle_memory.scaling` | Consistent hash ring, backpressure, TTL, shard routing |
@@ -235,7 +244,7 @@ All node ↔ orchestrator messages use `ProtocolMessage` with HMAC-SHA256 signin
 ## Core concepts
 
 - **Claims** — normalized extracted facts (not raw text)
-- **StandardClaim** — universal memory format (schema v1.0) compatible with MemPalace, Mem0, Memori
+- **StandardClaim** — universal memory format (schema v1.0) compatible with Mem0, Memori, and custom backends
 - **Visibility** — `private` (user-only) or `public` (shared general facts)
 - **Palace coordinates** — `wing/hall/room` for organizing memory
 - **Retrieval policy** — tunable parameters for how memory is ranked and mixed
@@ -324,13 +333,13 @@ Here is the gap analysis and what we solve:
 | 🧪 Memory quality unsolved | Hallucination propagation, conflicting truths | `quality.py` + `trust.py` — quality tracking auto-tunes policy; reputation caps confidence from untrusted nodes |
 | 🔐 Privacy vs sharing conflict | Personal memory is sensitive | `private`/`public` visibility on every claim; private memory never leaves the node |
 | 💸 Token incentives are tricky | Valuation, spam, Sybil resistance | `tokens.py` — reward accepted claims, penalize hallucinations; `trust.py` — rate limiting + reputation gating |
-| ⚙️ No standard memory format | MemPalace=logs, Mem0=facts, Memori=triples | `schema.py` — `StandardClaim` v1.0 with adapters from MemPalace, Mem0, semantic triples |
+| ⚙️ No standard memory format | Different systems use different formats | `schema.py` — `StandardClaim` v1.0 with adapters from Mem0, semantic triples, and custom sources |
 | 🌐 No shared memory graph | Each system is isolated | `federation.py` — nodes register, exchange public claims, query cross-node |
 | 🤝 No trust/attribution layer | Who contributed what? | `trust.py` — `ClaimProvenance` tracks origin, confirmations, disputes, retrievals |
 | ⚔️ Conflicting truths | Two nodes disagree | `conflict.py` — detect contradictions, resolve by confidence/reputation/consensus/recency |
 
 This library is the **social layer between isolated LLMs and collective intelligence**.
-It sits on top of MemPalace (or any local memory store) and adds:
+It sits on top of any local memory store and adds:
 - A wire protocol for agents to communicate like participants in a network
 - A trust and reputation system so good agents rise and bad agents get filtered
 - Token incentives that reward correct contributions and penalize hallucinations
@@ -343,13 +352,12 @@ It sits on top of MemPalace (or any local memory store) and adds:
 - Developers building **LLM-powered apps** that need agents to give correct answers
 - Teams running **multiple AI agents** that should share verified knowledge, not duplicate hallucinations
 - Anyone building **social AI systems** where agents interact, build reputation, and self-correct
-- Projects that use **MemPalace, RAG, or retrieval-augmented generation** and want cross-node trust + sync
+- Projects that use **RAG or retrieval-augmented generation** and want cross-node trust + sync
 
 ## How it compares
 
 | Project | What it does | What's missing |
 |---------|-------------|----------------|
-| [MemPalace](https://github.com/milla-jovovich/mempalace) | Local structured memory for LLMs | No networking, no tokens, no federation |
 | [Unibase](https://unibase.io/) | Blockchain AI memory layer (UB token) | Web3-only; requires blockchain; no local-first option; no quality auto-tuning |
 | [MemoryGr.id](https://memorygr.id/) | Open-source AI society memory | Individual + collective memory for agents; no token incentives, no wire protocol |
 | [Distributed Knowledge (OpenMined)](https://openmined.org/) | Federated LLM network, Ollama-compatible | Privacy-focused federation; no structured memory schema, no reputation system |
@@ -373,7 +381,7 @@ It sits on top of MemPalace (or any local memory store) and adds:
 
 | Layer | This lib | Others |
 |-------|----------|--------|
-| Local structured memory | ✅ MemPalace adapter | Partial (MemPalace, Mem0) |
+| Local structured memory | ✅ Built-in + pluggable backends | Partial (Mem0) |
 | Standard memory format | ✅ `StandardClaim` v1.0 | ❌ No shared schema |
 | Federation protocol | ✅ HMAC-signed messages | ❌ No cross-node protocol |
 | Token incentives | ✅ Reward/penalty ledger | ❌ Experimental at best |
@@ -387,7 +395,7 @@ It sits on top of MemPalace (or any local memory store) and adds:
 
 `social LLM` · `social AI agents` · `agent trust` · `agent reputation` ·
 `collective knowledge` · `global sharing` · `token network` · `LLM memory` ·
-`MemPalace` · `federation protocol` · `shared memory graph` · `agent memory` ·
+`oracle protocol` · `federation protocol` · `shared memory graph` · `agent memory` ·
 `decentralized AI memory` · `knowledge exchange` · `collective intelligence` ·
 `AI orchestrator` · `quality auto-tuning` · `RAG` · `retrieval augmented generation` ·
 `context sharing` · `private-first memory` · `multi-agent knowledge` ·
@@ -412,7 +420,7 @@ It sits on top of MemPalace (or any local memory store) and adds:
 ## Links
 
 - **PyPI:** https://pypi.org/project/oracle-mempalace/
-- **GitHub:** https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace
+- **GitHub:** https://github.com/Jeffyjefchat/oracle-protocol
 - **Live demo & app:** https://gpt-mind.gcapay.club/
 - **Developer forum:** https://gpt-mind.gcapay.club/forum
 - **Blog:** https://gpt-mind.gcapay.club/blog

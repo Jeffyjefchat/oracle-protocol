@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "oracle-mempalace"
-version = "0.4.0"
-description = "Collective knowledge network: private-first extracted memory with federation protocol, quality auto-tuning, and MemPalace adapter"
+version = "1.0.0"
+description = "Oracle Protocol: collective knowledge network with federation, trust scoring, token incentives, and conflict resolution for AI agents"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
@@ -25,20 +25,20 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 keywords = [
-    "ai", "memory", "llm", "mempalace", "federation",
+    "ai", "memory", "llm", "oracle-protocol", "federation",
     "rag", "collective-intelligence", "knowledge-network",
     "quality-tuning", "orchestrator", "token-network",
 ]
 dependencies = []
 
 [project.optional-dependencies]
-mempalace = ["mempalace>=3.0"]
+mempalace = ["mempalace>=3.0"]  # optional: external palace backend
 dev = ["pytest>=7.0", "pytest-cov>=4.0"]
 
 [project.urls]
-Homepage = "https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace"
-Repository = "https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace"
-Issues = "https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace/issues"
+Homepage = "https://github.com/Jeffyjefchat/oracle-protocol"
+Repository = "https://github.com/Jeffyjefchat/oracle-protocol"
+Issues = "https://github.com/Jeffyjefchat/oracle-protocol/issues"
 
 [tool.setuptools]
 packages = ["oracle_memory"]
