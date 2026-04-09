@@ -14,9 +14,10 @@ Strategies:
 from __future__ import annotations
 
 import time
+import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, Callable
 
 from .models import MemoryClaim
 
@@ -45,6 +46,66 @@ class Conflict:
         self.resolved = True
         self.winner_id = winner_id
         self.strategy_used = strategy
+
+
+@dataclass(slots=True)
+class Verdict:
+    """
+    Record of a resolved conflict with explicit finality state.
+
+    Lifecycle:  proposed → finalized
+    - Proposed: winner/loser determined, amounts calculated, hooks can inspect.
+    - Finalized: is_final=True, settlement applied, finalized_at stamped.
+
+    Nothing should mutate tokens or reputation until is_final is True.
+    """
+    verdict_id: str
+    conflict_id: str
+    winner_id: str          # winning claim's origin node
+    loser_id: str           # losing claim's origin node
+    winner_claim_id: str
+    loser_claim_id: str
+    reward_amount: float = 0.0
+    penalty_amount: float = 0.0
+    strategy: str = ""
+    reason: str = ""
+    is_final: bool = False
+    finalized_at: float = 0.0
+
+    def finalize(self) -> None:
+        """Mark this verdict as final. Irreversible."""
+        if self.is_final:
+            return
+        self.is_final = True
+        self.finalized_at = time.time()
+
+    @staticmethod
+    def create(conflict: Conflict, winner_node: str, loser_node: str,
+               reward: float = 0.0, penalty: float = 0.0,
+               auto_finalize: bool = True) -> Verdict:
+        """Factory that generates a verdict_id automatically.
+
+        If auto_finalize is True (default), the verdict is born final
+        for backward compatibility with immediate-settlement callers.
+        """
+        loser_claim = (conflict.claim_b_id
+                       if conflict.winner_id == conflict.claim_a_id
+                       else conflict.claim_a_id)
+        v = Verdict(
+            verdict_id=f"verdict-{uuid.uuid4().hex[:12]}",
+            conflict_id=conflict.conflict_id,
+            winner_id=winner_node,
+            loser_id=loser_node,
+            winner_claim_id=conflict.winner_id or "",
+            loser_claim_id=loser_claim,
+            reward_amount=reward,
+            penalty_amount=penalty,
+            strategy=conflict.strategy_used or "",
+            reason=conflict.reason,
+        )
+        if auto_finalize:
+            v.finalize()
+        return v
 
 
 class ConflictDetector:
@@ -122,10 +183,23 @@ class ConflictDetector:
 class ConflictResolver:
     """
     Resolves conflicts using configurable strategies.
+
+    Supports on_verdict_final hooks — callables fired after a verdict
+    is produced. Use these to bridge to blockchain, logging, or external
+    settlement systems.
     """
 
     def __init__(self, default_strategy: ResolutionStrategy = ResolutionStrategy.CONFIDENCE_WINS) -> None:
         self._default = default_strategy
+        self._hooks: list[Callable[[Verdict], None]] = []
+
+    def register_hook(self, callback: Callable[[Verdict], None]) -> None:
+        """Register a callback fired when a verdict is finalized."""
+        self._hooks.append(callback)
+
+    def _fire_hooks(self, verdict: Verdict) -> None:
+        for hook in self._hooks:
+            hook(verdict)
 
     def resolve(self, conflict: Conflict,
                 claim_a: MemoryClaim, claim_b: MemoryClaim,

@@ -1,4 +1,4 @@
-from .conflict import ConflictDetector, ConflictResolver, ResolutionStrategy
+from .conflict import ConflictDetector, ConflictResolver, ResolutionStrategy, Verdict
 from .control_plane import Orchestrator, RetrievalPolicy, QualityTarget
 from .crypto import KeyRing, ReplayGuard, SecureTransport
 from .easy import OracleAgent
@@ -12,6 +12,7 @@ from .quality import QualityEvent, QualityTracker
 from .scaling import ConsistentHashRing, BackpressureController, ClaimTTL, ShardRouter
 from .schema import StandardClaim, validate_claim, SCHEMA_VERSION
 from .service import OracleMemoryService
+from .settlement import SettlementEngine
 from .store import InMemoryMemoryStore, MemoryStore, MemPalaceStore
 from .tokens import TokenLedger, TokenConfig, TokenBalance
 from .trust import ReputationEngine, NodeReputation, ClaimProvenance
@@ -49,6 +50,9 @@ __all__ = [
     "ConflictDetector",
     "ConflictResolver",
     "ResolutionStrategy",
+    "Verdict",
+    # Settlement
+    "SettlementEngine",
     # Schema
     "StandardClaim",
     "validate_claim",

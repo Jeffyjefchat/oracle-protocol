@@ -105,6 +105,21 @@ class QualityTracker:
         self.record(ev)
         return ev
 
+    def record_verdict(self, verdict_id: str, conflict_id: str,
+                       winner_node: str, loser_node: str) -> QualityEvent:
+        """Log a finalized verdict into the quality event stream."""
+        ev = QualityEvent(
+            event_type="verdict_finalized",
+            user_id="",
+            conversation_id="",
+            node_id=winner_node,
+            claim_ids=[conflict_id],
+            score=1.0,
+            detail=f"verdict={verdict_id} loser={loser_node}",
+        )
+        self.record(ev)
+        return ev
+
     def metrics_for_node(self, node_id: str) -> dict[str, float]:
         events = [e for e in self._events if e.node_id == node_id]
         return self._compute_metrics(events)

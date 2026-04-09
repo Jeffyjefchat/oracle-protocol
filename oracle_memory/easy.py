@@ -20,6 +20,9 @@ from .service import OracleMemoryService
 from .store import InMemoryMemoryStore, MemoryStore
 from .quality import QualityTracker
 from .tokens import TokenLedger, TokenConfig
+from .trust import ReputationEngine
+from .conflict import ConflictResolver
+from .settlement import SettlementEngine
 
 
 @dataclass
@@ -36,6 +39,7 @@ class OracleAgent:
     store: MemoryStore | None = None
     _service: OracleMemoryService = field(init=False, repr=False)
     _ledger: TokenLedger = field(init=False, repr=False)
+    _settlement: SettlementEngine = field(init=False, repr=False)
     _last_query: str = field(init=False, default="", repr=False)
     _last_claim_ids: list[str] = field(init=False, default_factory=list, repr=False)
     _conversation_id: str = field(init=False, default="default", repr=False)
@@ -43,12 +47,19 @@ class OracleAgent:
     def __post_init__(self) -> None:
         if self.store is None:
             self.store = InMemoryMemoryStore()
+        quality = QualityTracker()
         self._service = OracleMemoryService(
             store=self.store,
             node_id=self.name,
-            quality=QualityTracker(),
+            quality=quality,
         )
         self._ledger = TokenLedger(config=TokenConfig())
+        self._settlement = SettlementEngine(
+            resolver=ConflictResolver(),
+            ledger=self._ledger,
+            reputation=ReputationEngine(),
+            quality=quality,
+        )
 
     # ── Core API (5 methods) ──
 
@@ -95,25 +106,36 @@ class OracleAgent:
         return removed
 
     def thumbs_up(self) -> None:
-        """Positive feedback on last recall."""
+        """Positive feedback on last recall — routed through settlement."""
         self._service.record_feedback(
             user_id=self.user_id,
             conversation_id=self._conversation_id,
             positive=True,
             claim_ids=self._last_claim_ids,
         )
-        for cid in self._last_claim_ids:
-            self._ledger.reward_positive_feedback(self.name, cid)
+        self._settlement.settle_feedback(
+            node_id=self.name,
+            claim_ids=self._last_claim_ids,
+            positive=True,
+            user_id=self.user_id,
+            conversation_id=self._conversation_id,
+        )
 
     def thumbs_down(self) -> None:
-        """Negative feedback on last recall."""
+        """Negative feedback on last recall — routed through settlement."""
         self._service.record_feedback(
             user_id=self.user_id,
             conversation_id=self._conversation_id,
             positive=False,
             claim_ids=self._last_claim_ids,
         )
-        self._ledger.penalize_correction(self.name)
+        self._settlement.settle_feedback(
+            node_id=self.name,
+            claim_ids=self._last_claim_ids,
+            positive=False,
+            user_id=self.user_id,
+            conversation_id=self._conversation_id,
+        )
 
     # ── Convenience ──
 

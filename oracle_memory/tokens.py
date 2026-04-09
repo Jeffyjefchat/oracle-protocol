@@ -36,17 +36,25 @@ class TokenConfig:
     quality_multiplier: float = 1.5          # bonus multiplier for premium nodes
 
 
-@dataclass(slots=True)
+@dataclass
 class TokenBalance:
-    """A node's token balance and transaction history."""
+    """A node's token balance and transaction history.
+
+    Balance is read-only from outside — all mutations go through
+    credit() and debit() to enforce the settlement path.
+    """
     node_id: str
-    balance: float = 0.0
+    _balance: float = field(default=0.0, repr=False)
     total_earned: float = 0.0
     total_penalized: float = 0.0
     transactions: list[dict[str, Any]] = field(default_factory=list)
 
+    @property
+    def balance(self) -> float:
+        return self._balance
+
     def credit(self, amount: float, reason: str, ref: str = "") -> None:
-        self.balance += amount
+        self._balance += amount
         self.total_earned += amount
         self.transactions.append({
             "type": "credit",
@@ -58,7 +66,7 @@ class TokenBalance:
 
     def debit(self, amount: float, reason: str, ref: str = "") -> None:
         """Debit (penalty). Balance can go negative."""
-        self.balance += amount  # amount is negative
+        self._balance += amount  # amount is negative
         self.total_penalized += abs(amount)
         self.transactions.append({
             "type": "debit",
