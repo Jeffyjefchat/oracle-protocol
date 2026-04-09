@@ -1,6 +1,6 @@
 # I Built a Social Trust Layer for AI Agents — So They Deliver Correct Information Instead of Hallucinating Alone
 
-**TL;DR:** I built `oracle-memory`, a Python library that turns isolated AI agents into a self-correcting social network. Agents share verified knowledge, build reputation, and get penalized for bad information. The network converges toward correct answers. 18 modules, 92 tests, zero dependencies.
+**TL;DR:** I built `oracle-memory`, a Python library that turns isolated AI agents into a self-correcting social network. Agents share verified knowledge, build reputation, and get penalized for bad information. The network converges toward correct answers. 22 modules, 122 tests, zero dependencies.
 
 ```bash
 pip install oracle-mempalace
@@ -40,7 +40,7 @@ results = agent.recall("who created Python?")
 agent.thumbs_up()  # feedback improves future retrieval
 ```
 
-That's the simple API. Under the hood, 18 modules handle:
+That's the simple API. Under the hood, 22 modules handle:
 
 **Memory:** Private + public claims per user. Facts are extracted, not raw conversations. Content-hashed for deduplication.
 
