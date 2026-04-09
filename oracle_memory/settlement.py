@@ -279,7 +279,6 @@ class SettlementEngine:
         self._verdicts.append(verdict)
 
         # Fire post-settlement hooks (blockchain bridge, external systems)
-        self._resolver._fire_hooks(verdict)
         for hook in self._post_hooks:
             hook(verdict)
 

@@ -17,7 +17,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
 
 from .models import MemoryClaim
 
@@ -120,7 +120,6 @@ class ConflictDetector:
 
     def __init__(self) -> None:
         self._conflicts: list[Conflict] = []
-        self._conflict_counter = 0
 
     @property
     def unresolved(self) -> list[Conflict]:
@@ -169,9 +168,8 @@ class ConflictDetector:
             ids = {existing.claim_a_id, existing.claim_b_id}
             if claim_a_id in ids and claim_b_id in ids:
                 return existing
-        self._conflict_counter += 1
         conflict = Conflict(
-            conflict_id=f"conflict-{self._conflict_counter}",
+            conflict_id=f"conflict-{uuid.uuid4().hex[:12]}",
             claim_a_id=claim_a_id,
             claim_b_id=claim_b_id,
             reason=reason,
@@ -183,23 +181,10 @@ class ConflictDetector:
 class ConflictResolver:
     """
     Resolves conflicts using configurable strategies.
-
-    Supports on_verdict_final hooks — callables fired after a verdict
-    is produced. Use these to bridge to blockchain, logging, or external
-    settlement systems.
     """
 
     def __init__(self, default_strategy: ResolutionStrategy = ResolutionStrategy.CONFIDENCE_WINS) -> None:
         self._default = default_strategy
-        self._hooks: list[Callable[[Verdict], None]] = []
-
-    def register_hook(self, callback: Callable[[Verdict], None]) -> None:
-        """Register a callback fired when a verdict is finalized."""
-        self._hooks.append(callback)
-
-    def _fire_hooks(self, verdict: Verdict) -> None:
-        for hook in self._hooks:
-            hook(verdict)
 
     def resolve(self, conflict: Conflict,
                 claim_a: MemoryClaim, claim_b: MemoryClaim,

@@ -147,15 +147,15 @@ def test_settle_conflict_finality_gate():
 
 
 def test_settle_conflict_fires_hooks():
-    """Principle 7: on_verdict_final hooks fire after settlement."""
+    """Principle 7: post-settlement hooks fire after settlement."""
     resolver = ConflictResolver()
     ledger = TokenLedger()
     rep = ReputationEngine()
     engine = SettlementEngine(resolver, ledger, rep)
 
     hook_calls = []
-    engine.register_hook(lambda v: hook_calls.append(v))
-    resolver.register_hook(lambda v: hook_calls.append(("resolver", v)))
+    engine.register_hook(lambda v: hook_calls.append(("hook-1", v)))
+    engine.register_hook(lambda v: hook_calls.append(("hook-2", v)))
 
     claim_a, claim_b = _make_test_claims()
     detector = ConflictDetector()
@@ -166,13 +166,12 @@ def test_settle_conflict_fires_hooks():
         node_a="node-a", node_b="node-b",
     )
 
-    # Both hooks fired
+    # Both hooks fired in order
     assert len(hook_calls) == 2
-    # Resolver hook got a tuple
-    assert hook_calls[0][0] == "resolver"
+    assert hook_calls[0][0] == "hook-1"
     assert hook_calls[0][1].verdict_id == verdict.verdict_id
-    # Engine hook got the verdict directly
-    assert hook_calls[1].verdict_id == verdict.verdict_id
+    assert hook_calls[1][0] == "hook-2"
+    assert hook_calls[1][1].verdict_id == verdict.verdict_id
 
 
 def test_settle_conflict_logs_verdict_event():
