@@ -408,3 +408,11 @@ It sits on top of MemPalace (or any local memory store) and adds:
 `one-liner API` · `drop-in memory` · `benchmark suite` · `shared vs isolated` ·
 `memory coordination layer` · `social trust layer` · `self-correcting AI` ·
 `correct AI answers` · `anti-hallucination network` · `social LLM interactions`
+
+## Links
+
+- **PyPI:** https://pypi.org/project/oracle-mempalace/
+- **GitHub:** https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace
+- **Live demo & app:** https://gpt-mind.gcapay.club/
+- **Developer forum:** https://gpt-mind.gcapay.club/forum
+- **Blog:** https://gpt-mind.gcapay.club/blog
