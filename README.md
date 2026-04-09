@@ -14,11 +14,8 @@ LLMs guess alone and get things wrong. oracle-memory turns them into a social ne
 ## Install
 
 ```bash
-# From GitHub (latest)
+# From PyPI
 pip install oracle-mempalace
-
-# With MemPalace backend support
-pip install "oracle-memory[mempalace] @ git+https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace.git"
 
 # For development
 git clone https://github.com/Jeffyjefchat/collective-knowledge-global-sharing-token-network-mempalace.git
