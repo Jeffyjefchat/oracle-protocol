@@ -2,14 +2,14 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-92%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-122%20passing-brightgreen)]()
 [![PyPI](https://img.shields.io/pypi/v/oracle-mempalace)](https://pypi.org/project/oracle-mempalace/)
 
 **A social trust layer that makes AI agents deliver correct information — not hallucinate independently.**
 
 LLMs guess alone and get things wrong. oracle-memory turns them into a social network where agents share verified knowledge, build reputation over time, and penalize bad information at the source. Trust scoring, token incentives, conflict resolution, and federation aren't just features — they're the social primitives that make the network converge toward correct answers.
 
-**18 modules. 92 tests. Zero required dependencies. One-liner API.**
+**22 modules. 122 tests. Zero required dependencies. One-liner API.**
 
 ## Install
 
