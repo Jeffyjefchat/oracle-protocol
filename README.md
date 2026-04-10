@@ -1,54 +1,76 @@
 # Oracle Protocol
 
-> Ask Oracle anything and get a confidence-scored answer.
+> **Your agents disagree. Oracle Protocol decides who's right — and makes it count.**
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-204%20passing-brightgreen)]()
 [![PyPI](https://img.shields.io/pypi/v/oracle-mempalace)](https://pypi.org/project/oracle-mempalace/)
 
-AI agents forget everything between sessions. RAG gives them retrieval — but only locally. If you run multiple agents, or work across machines, each one starts from scratch.
+Most AI memory systems store facts. Oracle Protocol **challenges them**.
 
-Oracle Protocol adds the missing layer: persistent memory that federates across nodes, with trust scoring so bad data doesn't propagate.
+When multiple agents submit conflicting claims, the protocol detects the contradiction, resolves it using reputation and confidence scoring, issues a verdict, and settles consequences — winners earn tokens, losers lose them. One source of truth emerges.
 
-**27 modules. 204 tests. Zero required dependencies.**
+```
+Agent A claims: "GPT-5 has 10T parameters"    (confidence: 70%, reputation: 60%)
+Agent B claims: "GPT-5 has 5T parameters"     (confidence: 50%, reputation: 30%)
+Agent C claims: "GPT-5 has 8T parameters"     (confidence: 95%, reputation: 90%)
 
-## 10-second demo
+⚠ 3 conflicts detected
+✔ Verdict: Agent C wins (reputation_wins strategy)
+✔ Agent C: +1.5 tokens, reputation 90% → 94%  ⭐ premium
+✗ Agent A: -3.0 tokens, reputation 60% → 57%
+✗ Agent B: -3.0 tokens, reputation 30% → 27%  ❌ untrusted
+```
+
+**This is what makes it different: claims can be challenged, and outcomes have consequences.**
+
+## See it live
 
 ```bash
 pip install oracle-mempalace
-oracle demo
+python -m oracle_memory.demo_conflict
 ```
 
+Three agents disagree. The protocol detects conflicts, proposes verdicts (inspectable, vetable), finalizes them, and settles tokens + reputation. Full two-phase resolution in 6 steps.
+
+## Quick start
+
+```python
+from oracle_memory import OracleAgent
+
+agent = OracleAgent("my-agent")
+agent.remember("Python was created by Guido van Rossum in 1991")
+results = agent.recall("who created Python?")
+agent.thumbs_up()
 ```
-Oracle Protocol v2.1.0 — Live Demo
-═══════════════════════════════════
-Step 1: Teaching the oracle...
-  + Python was created by Guido van Rossum in 1991
-  + Flask is a micro web framework for Python
-  + Trust scoring prevents bad data from spreading
-  → Stored 10 claims (8 public, 2 private)
 
-Step 2: Querying the oracle...
-  Q: who created Python?
-  A: Python was created by Guido van Rossum in 1991
-  → 👍 Feedback recorded
+Five methods. One object: `remember()`, `recall()`, `forget()`, `thumbs_up()`, `thumbs_down()`.
 
-Step 3: Oracle statistics
-  Total claims: 10
-  Token balance: 10.0
+## Install
+
+```bash
+pip install oracle-mempalace
+```
+
+```bash
+# For development
+git clone https://github.com/Jeffyjefchat/oracle-protocol.git
+cd oracle-protocol
+pip install -e ".[dev]"
 ```
 
 ## CLI
 
 ```bash
-oracle ask "Who created Python?"
-oracle verify "Flask uses Jinja2 templates"
-oracle remember "Python 3.12 added f-string improvements"
-oracle trends
-oracle stats
-oracle export --output backup.json
-oracle forget "outdated fact"
+oracle ask "Who created Python?"       # confidence-scored answers
+oracle verify "Flask uses Jinja2"      # cross-reference against known claims
+oracle remember "new fact"             # ingest a claim
+oracle trends                          # knowledge distribution overview
+oracle stats                           # oracle health metrics
+oracle export --output backup.json     # portable JSON export
+oracle forget "outdated fact"          # remove a claim
+oracle demo                            # interactive walkthrough
 ```
 
 ### oracle ask
@@ -70,8 +92,6 @@ $ oracle ask "who created Python?"
 ```bash
 $ oracle verify "Python was created by Guido van Rossum"
 
-  Verifying: "Python was created by Guido van Rossum"
-  ────────────────────────────────
   Verdict: LIKELY TRUE
   Combined confidence: ████████████████░░░░ 78% (HIGH)
 
@@ -80,54 +100,52 @@ $ oracle verify "Python was created by Guido van Rossum"
       confidence=60%  relevance=83%
 ```
 
-### oracle trends
+## The conflict resolution pipeline
 
-```bash
-$ oracle trends
+This is the core of the protocol. Every other feature exists to support this flow.
 
-  Oracle Knowledge Trends
-  ────────────────────────────────
-  Total claims: 38
-  Categories:   5
-  Sources:      conversation(12), document(26)
-
-  EVENT (15 claims, 10 high-confidence)
-    ██████████ 80%  AI agents forget everything...
-    ████████░░ 60%  Federation allows knowledge...
-  ...
-
-  Top verified claims:
-    1. HMAC-SHA256 is used for message signing
-       confidence: ████████████████████ 95% (HIGH)
+```
+┌──────────────┐     ┌───────────────────┐     ┌──────────────────┐
+│  Agents      │     │  ConflictDetector  │     │ ConflictResolver │
+│  submit      │────>│  finds conflicts   │────>│ picks winner     │
+│  claims      │     │  (overlap/contra.) │     │ (5 strategies)   │
+└──────────────┘     └───────────────────┘     └────────┬─────────┘
+                                                        │
+                     ┌───────────────────┐              │
+                     │  Consequences     │     ┌────────v─────────┐
+                     │  tokens settled   │<────│ SettlementEngine │
+                     │  reputation moved │     │ propose → finalize│
+                     │  verdict is final │     │ (two-phase, hooks)│
+                     └───────────────────┘     └──────────────────┘
 ```
 
-## Install
+**Resolution strategies:** `CONFIDENCE_WINS` · `REPUTATION_WINS` · `NEWER_WINS` · `CONSENSUS` · `MANUAL`
 
-```bash
-pip install oracle-mempalace
-```
+**Two-phase verdicts:** `propose_verdict()` returns a pending verdict you can inspect and veto. `finalize_verdict()` makes it irreversible and settles tokens + reputation. Or use `settle_conflict()` for one-shot mode.
 
-```bash
-# For development
-git clone https://github.com/Jeffyjefchat/oracle-protocol.git
-cd oracle-protocol
-pip install -e ".[dev]"
-```
-
-## Quick start (Python API)
+**Pre/post hooks:** Register callbacks that can veto verdicts before finalization or react after settlement.
 
 ```python
-from oracle_memory import OracleAgent
+from oracle_memory import (
+    ConflictDetector, ConflictResolver, SettlementEngine,
+    ResolutionStrategy, TokenLedger, ReputationEngine, QualityTracker,
+)
 
-agent = OracleAgent("my-agent")
-agent.remember("Python was created by Guido van Rossum in 1991")
-results = agent.recall("who created Python?")
-agent.thumbs_up()
+detector = ConflictDetector()
+resolver = ConflictResolver(default_strategy=ResolutionStrategy.REPUTATION_WINS)
+engine = SettlementEngine(resolver=resolver, ledger=TokenLedger(),
+                          reputation=ReputationEngine(), quality=QualityTracker())
+
+# Detect
+conflict = detector.check_pair(claim_a, claim_b)
+
+# Two-phase resolve
+verdict = engine.propose_verdict(conflict, claim_a, claim_b, "node-a", "node-b", 0.6, 0.9)
+# inspect verdict, run business logic, optionally veto...
+engine.finalize_verdict(verdict)  # tokens and reputation are settled
 ```
 
-Five methods. One object. That's the interface: `remember()`, `recall()`, `forget()`, `thumbs_up()`, `thumbs_down()`.
-
-### Persistent storage (v2)
+## Persistent storage
 
 ```python
 from oracle_memory import OracleAgent, SQLiteStore
@@ -138,7 +156,7 @@ agent.remember("Python was created by Guido van Rossum in 1991")
 # restart your app — the claim is still there
 ```
 
-### GDPR compliance (v2)
+## GDPR compliance
 
 ```python
 from oracle_memory import GDPRController, SQLiteStore
@@ -150,22 +168,27 @@ data = gdpr.export_user_data("user-42")   # Article 20 portability
 gdpr.erase_user_data("user-42")            # Article 17 right to erasure
 ```
 
-## What's under the hood
+## Federation
 
-- **Memory** — Facts stored as claims. Private by default, optionally shared. Content-hashed to prevent duplicates.
-- **Persistent storage (v2)** — SQLite-backed store. Claims survive restarts. WAL mode, thread-safe, zero dependencies.
-- **Federation** — Nodes register with an orchestrator. Public claims sync via HMAC-signed protocol messages.
-- **HTTP transport (v2)** — Network-ready federation over stdlib `urllib`. Client + server handler included.
-- **Trust & reputation** — Nodes earn reputation over time. Hallucination sources get penalized. Sybil-resistant.
-- **Token incentives** — Useful knowledge earns tokens. Bad contributions cost tokens. No blockchain — the ledger is in the orchestrator.
-- **Conflict resolution** — When nodes disagree, five strategies resolve it: confidence, reputation, recency, consensus, or manual review. Confirmations detected separately from contradictions.
-- **Settlement engine** — Sealed ledger boundary with verdict serialization. Winners earn, losers pay.
-- **Quality auto-tuning** — Feedback-driven policy updates per node.
-- **Scaling** — Consistent hash ring, backpressure, TTL-based expiry.
-- **Security** — Key rotation, replay protection, message expiry windows.
-- **GDPR compliance (v2)** — Consent management, data export (Art. 20), right to erasure (Art. 17), audit log.
-- **CLI (v2.1)** — `oracle ask`, `oracle verify`, `oracle trends`, `oracle remember`, `oracle demo`. The user-facing product layer.
-- **Framework adapters** — Drop-in for LangChain, LlamaIndex, AutoGen.
+Nodes register with an orchestrator. Public claims sync via HMAC-signed protocol messages. Knowledge spreads across the network — but only if the source is trusted.
+
+```
++-------------+      +-------------+      +-------------+
+|   Node A    |      |   Node B    |      |   Node C    |
+| (your app)  |      | (partner)   |      | (mobile)    |
+|  Service    |      |  Service    |      |  Service    |
+|  + Store    |      |  + Store    |      |  + Store    |
++------+------+      +------+------+      +------+------+
+       |                    |                     |
+       +----------+---------+---------------------+
+                  |
+          +-------v--------+
+          |  Orchestrator  |
+          |  Federation    |
+          |  Settlement    |
+          |  Token Ledger  |
+          +----------------+
+```
 
 ## Framework integrations
 
@@ -175,39 +198,35 @@ from oracle_memory.integrations import LlamaIndexMemory    # LlamaIndex
 from oracle_memory.integrations import AutoGenMemoryBackend # AutoGen
 ```
 
-## Architecture
+## What's under the hood
 
-```
-+-------------+      +-------------+      +-------------+
-|   Node A    |      |   Node B    |      |   Node C    |
-| (your app)  |      | (partner)   |      | (mobile)    |
-|  Service    |      |  Service    |      |  Service    |
-|  + Store    |      |  + Store    |      |  + Store    |
-|  + Quality  |      |  + Quality  |      |  + Quality  |
-+------+------+      +------+------+      +------+------+
-       |                    |                     |
-       +----------+---------+---------------------+
-                  |
-          +-------v--------+
-          |  Orchestrator  |
-          |  Federation    |
-          |  Control Plane |
-          |  Policy Engine |
-          +----------------+
-```
+| Layer | What it does |
+|-------|-------------|
+| **Memory & storage** | Claims stored with confidence scoring. SQLite (WAL, thread-safe) or in-memory. Content-hashed deduplication. |
+| **Federation & protocol** | Multi-node sync via HMAC-SHA256 signed messages. HTTP transport included. |
+| **Trust & reputation** | Nodes earn reputation over time. Hallucination sources get penalized. Sybil-resistant. |
+| **Token incentives** | Useful knowledge earns tokens. Bad contributions cost tokens. No blockchain — pure accounting. |
+| **Conflict resolution** | 5 strategies. Confirmations detected separately from contradictions. |
+| **Settlement engine** | Two-phase verdicts (propose → finalize). Pre/post hooks. Sealed ledger boundary. |
+| **Quality auto-tuning** | Feedback-driven policy updates per node. |
+| **Scaling** | Consistent hash ring, backpressure, TTL-based expiry, shard routing. |
+| **Security** | Key rotation, replay protection, message expiry windows. |
+| **GDPR** | Consent management, data export (Art. 20), right to erasure (Art. 17), audit log. |
+| **CLI** | `oracle ask`, `verify`, `trends`, `remember`, `demo` — the product layer. |
 
-## Package layout
+## Package layout (28 modules)
 
 | Module | Purpose |
 |--------|---------|
-| `oracle_memory.cli` | **v2.1** — CLI: `oracle ask`, `verify`, `trends`, `demo` |
 | `oracle_memory.easy` | **One-liner API** — `OracleAgent` with 5 methods |
+| `oracle_memory.cli` | CLI: `oracle ask`, `verify`, `trends`, `demo` |
+| `oracle_memory.demo_conflict` | **v2.2** — Multi-agent conflict resolution demo |
 | `oracle_memory.models` | Memory claims and palace coordinates |
 | `oracle_memory.store` | Abstract store interface + in-memory impl |
-| `oracle_memory.sqlite_store` | **v2** — SQLite persistent store (WAL, thread-safe) |
+| `oracle_memory.sqlite_store` | SQLite persistent store (WAL, thread-safe) |
 | `oracle_memory.service` | High-level orchestration for ingestion and retrieval |
 | `oracle_memory.extractor` | Extraction rules for prompts and documents |
-| `oracle_memory.protocol` | HMAC-signed wire protocol for node <-> orchestrator |
+| `oracle_memory.protocol` | HMAC-signed wire protocol for node ↔ orchestrator |
 | `oracle_memory.control_plane` | Orchestrator, retrieval policies, auto-tuning |
 | `oracle_memory.quality` | Quality event tracking and metric aggregation |
 | `oracle_memory.federation` | Multi-node registry and public claim exchange |
@@ -221,25 +240,25 @@ from oracle_memory.integrations import AutoGenMemoryBackend # AutoGen
 | `oracle_memory.scaling` | Hash ring, backpressure, TTL, shard routing |
 | `oracle_memory.monitor` | Network statistics dashboard |
 | `oracle_memory.benchmark` | Benchmark suite — shared vs isolated comparison |
-| `oracle_memory.http_transport` | **v2** — HTTP transport client + server handler |
-| `oracle_memory.gdpr` | **v2** — GDPR compliance (consent, erasure, export, audit) |
+| `oracle_memory.http_transport` | HTTP transport client + server handler |
+| `oracle_memory.gdpr` | GDPR compliance (consent, erasure, export, audit) |
 | `oracle_memory.integrations` | Drop-in adapters for LangChain, LlamaIndex, AutoGen |
 
-## Protocol
+## Protocol messages
 
-All node <-> orchestrator messages use `ProtocolMessage` with HMAC-SHA256 signing:
+All node ↔ orchestrator messages use `ProtocolMessage` with HMAC-SHA256 signing:
 
 | Message type | Direction | Purpose |
 |---|---|---|
-| `register_node` | Node -> Orch | Join the federation |
-| `heartbeat` | Node -> Orch | Keepalive + stats |
-| `memory_claim` | Node -> Orch | Publish public claim |
-| `retrieval_request` | Node -> Orch | Query public claims |
-| `retrieval_response` | Orch -> Node | Return matching claims |
-| `policy_update` | Orch -> Node | Push tuned retrieval policy |
-| `quality_report` | Node -> Orch | Submit quality metrics |
-| `conversation_feedback` | Node -> Orch | User feedback signal |
-| `conflict_notice` | Orch -> Node | Conflicting claim alert |
+| `register_node` | Node → Orch | Join the federation |
+| `heartbeat` | Node → Orch | Keepalive + stats |
+| `memory_claim` | Node → Orch | Publish public claim |
+| `retrieval_request` | Node → Orch | Query public claims |
+| `retrieval_response` | Orch → Node | Return matching claims |
+| `policy_update` | Orch → Node | Push tuned retrieval policy |
+| `quality_report` | Node → Orch | Submit quality metrics |
+| `conversation_feedback` | Node → Orch | User feedback signal |
+| `conflict_notice` | Orch → Node | Conflicting claim alert |
 
 ## Benchmark
 
@@ -273,26 +292,31 @@ transport.rotate_key("my-secret-v2")  # old messages still verify
 | Wire protocol (HMAC) | No | No | No | No | **Yes** |
 | Token incentives | No | No | No | No | **Yes** |
 | Reputation + Sybil resistance | No | No | No | No | **Yes** |
-| Conflict resolution | No | No | No | No | **Yes** |
+| **Conflict resolution + verdicts** | No | No | No | No | **Yes** |
+| **Two-phase settlement** | No | No | No | No | **Yes** |
 | Quality auto-tuning | No | No | No | No | **Yes** |
-| Standard claim format | No | No | No | No | **Yes** |
 | Provenance tracking | No | No | No | No | **Yes** |
 | CLI tool | No | No | No | No | **Yes** |
+| GDPR compliance | No | No | No | No | **Yes** |
+
+## What's new in v2.2.0
+
+- **Multi-agent conflict demo** — `python -m oracle_memory.demo_conflict`. Three agents disagree, the protocol resolves it live. Shows the full pipeline: detection → two-phase verdict → token/reputation settlement.
+- **README rewrite** — Leads with the killer feature (conflict resolution with consequences), not generic memory.
 
 ## What's new in v2.1.0
 
-- **CLI** — `oracle ask`, `oracle verify`, `oracle remember`, `oracle trends`, `oracle stats`, `oracle export`, `oracle forget`, `oracle demo`. Confidence-scored answers from the command line. The user-facing product layer.
-- **`__main__` support** — `python -m oracle_memory demo` works now.
+- **CLI** — `oracle ask`, `oracle verify`, `oracle remember`, `oracle trends`, `oracle stats`, `oracle export`, `oracle forget`, `oracle demo`. The user-facing product layer.
+- **`__main__` support** — `python -m oracle_memory demo` works.
 - **`[project.scripts]` entry point** — `pip install oracle-mempalace` gives you the `oracle` command globally.
 - **204 tests** — 35 new CLI tests, all passing with zero warnings.
 
 ## What's new in v2.0.0
 
-- **SQLite persistent store** — Drop-in replacement for `InMemoryMemoryStore`. Claims survive restarts. WAL journal mode, thread-safe via thread-local connections, TF-IDF search, extended API (`delete_claim`, `delete_user_data`, `export_user_data`, `count_claims`).
-- **HTTP transport** — Network-ready federation using stdlib `urllib`. Client class (`send`, `fetch_claims`, `register`, `heartbeat`, `publish_claim`) + server-side `handle_protocol_request()` with HMAC signature verification.
-- **GDPR compliance** — `GDPRController` with consent management (Article 7), data export (Article 20), right to erasure (Article 17), and full audit log. Works with both in-memory and SQLite stores.
-- **Deprecation fixes** — All `datetime.utcnow()` replaced with timezone-aware `datetime.now(timezone.utc)`.
-- **169 tests** — 39 new tests for v2 features, all passing with zero warnings.
+- **SQLite persistent store** — WAL journal mode, thread-safe, TF-IDF search.
+- **HTTP transport** — Network-ready federation using stdlib `urllib`.
+- **GDPR compliance** — Consent management, data export, right to erasure, audit log.
+- **169 tests** — 39 new tests for v2 features.
 
 ## Roadmap
 
@@ -307,17 +331,21 @@ transport.rotate_key("my-secret-v2")  # old messages still verify
 9. WebSocket real-time sync
 10. Formal protocol specification (RFC-style)
 11. Postgres store backend
+12. ~~Multi-agent conflict demo~~ ✅ v2.2.0
 
 ## FAQ
 
-**Does it require a database?**
-No. The default store is in-memory. For persistence, use `SQLiteStore("memory.db")` — no external database needed. You can also plug in any backend by implementing the `MemoryStore` interface.
+**What makes this different from Mem0 / LangChain memory?**
+Those systems store facts for a single user. Oracle Protocol lets multiple agents **challenge each other's claims** and automatically determines who is right — with token and reputation consequences. It's a protocol, not just storage.
 
-**How is it different from Mem0?**
-Mem0 extracts facts for a single user. Oracle Protocol adds federation, tokens, trust scoring, conflict resolution, and a standard schema so agents share knowledge across a network.
+**Does it require a database?**
+No. The default store is in-memory. For persistence, use `SQLiteStore("memory.db")` — no external database needed.
 
 **Can I use it with LangChain / LlamaIndex / AutoGen?**
-Yes. Drop-in adapters included. One import and your agent has persistent shared memory.
+Yes. Drop-in adapters included. One import and your agent has persistent shared memory with conflict resolution.
+
+**How does conflict resolution work?**
+When two claims contradict, `ConflictDetector` flags it. `ConflictResolver` picks a winner using one of 5 strategies. `SettlementEngine` proposes a verdict (inspectable, vetable), then finalizes it — settling tokens and reputation. The verdict is a portable JSON object.
 
 ## Links
 
@@ -329,4 +357,6 @@ Yes. Drop-in adapters included. One import and your agent has persistent shared 
 
 ---
 
-*Oracle Protocol is a collective knowledge layer for AI agents — persistent memory, federated exchange, trust scoring, and token incentives in a single Python package.*
+**28 modules. 204+ tests. Zero required dependencies.**
+
+*Oracle Protocol — where claims are challenged, verdicts are rendered, and truth has consequences.*

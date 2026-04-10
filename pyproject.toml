@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "oracle-mempalace"
-version = "2.1.0"
-description = "Oracle Protocol v2: persistent SQLite store, HTTP transport, GDPR compliance, federation, trust scoring, token incentives, and conflict resolution for AI agents"
+version = "2.2.0"
+description = "Oracle Protocol: claims are challenged, verdicts are rendered, truth has consequences. Multi-agent memory with conflict resolution, federation, trust scoring, and token incentives."
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
