@@ -8,7 +8,7 @@ from urllib.error import URLError
 
 __all__ = ["check_for_updates", "CURRENT_VERSION"]
 
-CURRENT_VERSION = "1.0.0"
+CURRENT_VERSION = "2.0.0"
 _PYPI_URL = "https://pypi.org/pypi/oracle-mempalace/json"
 
 

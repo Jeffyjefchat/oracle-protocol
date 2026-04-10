@@ -9,9 +9,17 @@ This module answers: "Drop-in memory that improves your agent over time."
     agent.remember("Python was created by Guido van Rossum")
     context = agent.recall("who created Python?")
     agent.thumbs_up()  # positive feedback loop
+
+Federated mode (auto-registers, heartbeats, fetches policy):
+
+    from oracle_memory import OracleAgent, Orchestrator
+    orch = Orchestrator(secret="shared-secret")
+    agent = OracleAgent("my-agent", orchestrator=orch, secret="shared-secret")
 """
 from __future__ import annotations
 
+import threading
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -23,6 +31,8 @@ from .tokens import TokenLedger, TokenConfig
 from .trust import ReputationEngine
 from .conflict import ConflictResolver
 from .settlement import SettlementEngine
+from .federation import FederationClient
+from .control_plane import Orchestrator, RetrievalPolicy
 
 
 @dataclass
@@ -37,9 +47,15 @@ class OracleAgent:
     name: str
     user_id: str = "default"
     store: MemoryStore | None = None
+    orchestrator: Orchestrator | None = None
+    secret: str = ""
+    heartbeat_interval: float = 60.0
     _service: OracleMemoryService = field(init=False, repr=False)
     _ledger: TokenLedger = field(init=False, repr=False)
     _settlement: SettlementEngine = field(init=False, repr=False)
+    _federation: FederationClient | None = field(init=False, default=None, repr=False)
+    _heartbeat_thread: threading.Thread | None = field(init=False, default=None, repr=False)
+    _heartbeat_stop: threading.Event = field(init=False, repr=False, default_factory=threading.Event)
     _last_query: str = field(init=False, default="", repr=False)
     _last_claim_ids: list[str] = field(init=False, default_factory=list, repr=False)
     _conversation_id: str = field(init=False, default="default", repr=False)
@@ -48,10 +64,20 @@ class OracleAgent:
         if self.store is None:
             self.store = InMemoryMemoryStore()
         quality = QualityTracker()
+
+        # Set up federation client if orchestrator provided
+        federation: FederationClient | None = None
+        if self.orchestrator is not None:
+            federation = FederationClient(node_id=self.name, secret=self.secret)
+            self._federation = federation
+            # Register with orchestrator
+            self._register_with_orchestrator()
+
         self._service = OracleMemoryService(
             store=self.store,
             node_id=self.name,
             quality=quality,
+            federation=federation,
         )
         self._ledger = TokenLedger(config=TokenConfig())
         self._settlement = SettlementEngine(
@@ -60,6 +86,56 @@ class OracleAgent:
             reputation=ReputationEngine(),
             quality=quality,
         )
+
+        # Start heartbeat loop if federated
+        if self.orchestrator is not None:
+            self._start_heartbeat()
+
+    def _register_with_orchestrator(self) -> None:
+        """Register this node with the orchestrator and fetch retrieval policy."""
+        assert self.orchestrator is not None
+        assert self._federation is not None
+        # Build and send HMAC-signed register message
+        msg = self._federation.build_register_message()
+        if self.secret:
+            self.orchestrator._secret = self.orchestrator._secret or self.secret
+        # Register and receive policy
+        self.orchestrator.register_node(self.name, msg.payload.get("capabilities", {}))
+
+    def _start_heartbeat(self) -> None:
+        """Start a daemon thread that sends periodic heartbeats."""
+        self._heartbeat_stop.clear()
+
+        def _heartbeat_loop() -> None:
+            while not self._heartbeat_stop.is_set():
+                self._heartbeat_stop.wait(self.heartbeat_interval)
+                if self._heartbeat_stop.is_set():
+                    break
+                if self.orchestrator and self._federation:
+                    stats = {
+                        "active_users": 1,
+                        "memory_count": len(
+                            self.store.list_claims(user_id=self.user_id, limit=10000)
+                        ) if self.store else 0,
+                    }
+                    self._federation.build_heartbeat_message(**stats)
+                    self.orchestrator.heartbeat(self.name, stats)
+                    # Fetch latest policy
+                    policy = self.orchestrator.get_policy_for_node(self.name)
+                    if policy:
+                        self._service.apply_policy(policy)
+
+        self._heartbeat_thread = threading.Thread(
+            target=_heartbeat_loop, daemon=True, name=f"oracle-heartbeat-{self.name}"
+        )
+        self._heartbeat_thread.start()
+
+    def shutdown(self) -> None:
+        """Stop the heartbeat loop. Safe to call multiple times."""
+        self._heartbeat_stop.set()
+        if self._heartbeat_thread is not None:
+            self._heartbeat_thread.join(timeout=5)
+            self._heartbeat_thread = None
 
     # ── Core API (5 methods) ──
 

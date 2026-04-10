@@ -1,426 +1,234 @@
 # Oracle Protocol
 
-> A trust layer for AI agents — so they deliver correct information instead of hallucinating alone.
+> A shared memory layer for AI agents — persistent, federated, trust-scored.
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-125%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-169%20passing-brightgreen)]()
 [![PyPI](https://img.shields.io/pypi/v/oracle-mempalace)](https://pypi.org/project/oracle-mempalace/)
 
-Every LLM hallucinates independently. Oracle Protocol fixes that by treating AI agents as participants in a knowledge network — agents that give correct answers earn reputation and tokens, agents that hallucinate lose both. The network self-corrects toward accurate answers over time.
+AI agents forget everything between sessions. RAG gives them retrieval — but only locally. If you run multiple agents, or work across machines, each one starts from scratch.
 
-**What's inside:**
-- **Federation** — agents share verified knowledge across nodes via HMAC-signed protocol messages
-- **Trust & reputation** — good agents rise, bad agents get throttled (Sybil-resistant)
-- **Token incentives** — useful contributions earn tokens, hallucinations cost tokens
-- **Conflict resolution** — when agents disagree, the network resolves it (5 strategies)
-- **Standard schema** — one universal claim format (`StandardClaim` v1.0) across all backends
-- **Quality auto-tuning** — feedback-driven policy updates per node
-- **Private-first** — raw conversations never leave the node
+Oracle Protocol adds the missing layer: persistent memory that federates across nodes, with trust scoring so bad data doesn't propagate.
 
-**22 modules. 125 tests. Zero required dependencies. One-liner API.**
+**25 modules. 169 tests. Zero required dependencies.**
 
 ## Install
 
 ```bash
-# From PyPI
 pip install oracle-mempalace
+```
 
+```bash
 # For development
 git clone https://github.com/Jeffyjefchat/oracle-protocol.git
 cd oracle-protocol
 pip install -e ".[dev]"
 ```
 
-## Quick start (5 seconds)
+## Quick start
 
 ```python
 from oracle_memory import OracleAgent
 
 agent = OracleAgent("my-agent")
 agent.remember("Python was created by Guido van Rossum in 1991")
-agent.remember("Flask is a lightweight WSGI web framework")
-
 results = agent.recall("who created Python?")
-print(results)  # ['Python was created by Guido van Rossum in 1991']
-
-agent.thumbs_up()   # positive feedback → improves future retrieval
-print(agent.stats)  # token balance, quality metrics, claim count
+agent.thumbs_up()
 ```
 
-That's it. One object, five methods: `remember()`, `recall()`, `forget()`, `thumbs_up()`, `thumbs_down()`.
+Five methods. One object. That's the interface: `remember()`, `recall()`, `forget()`, `thumbs_up()`, `thumbs_down()`.
 
-For framework integrations:
+### Persistent storage (v2)
 
 ```python
-# LangChain drop-in
-from oracle_memory.integrations import LangChainMemory
-memory = LangChainMemory(agent_name="my-chain")
+from oracle_memory import OracleAgent, SQLiteStore
 
-# LlamaIndex drop-in
-from oracle_memory.integrations import LlamaIndexMemory
-memory = LlamaIndexMemory(agent_name="llama-agent")
-
-# AutoGen drop-in
-from oracle_memory.integrations import AutoGenMemoryBackend
-backend = AutoGenMemoryBackend(agent_name="coder")
+store = SQLiteStore("memory.db")           # survives restarts
+agent = OracleAgent("my-agent", store=store)
+agent.remember("Python was created by Guido van Rossum in 1991")
+# restart your app — the claim is still there
 ```
 
-## Why this exists — the social LLM problem
+### GDPR compliance (v2)
 
-Every LLM hallucinates alone. RAG gives an agent its own documents, but when that agent is wrong, nothing corrects it. There's no feedback loop. No reputation. No consequence for bad answers.
+```python
+from oracle_memory import GDPRController, SQLiteStore
 
-This library treats AI agents like participants in a social network:
+store = SQLiteStore("memory.db")
+gdpr = GDPRController(store)
+gdpr.record_consent("user-42", "memory_storage")
+data = gdpr.export_user_data("user-42")   # Article 20 portability
+gdpr.erase_user_data("user-42")            # Article 17 right to erasure
+```
 
-- **Agents that give correct information earn reputation and tokens** — they get amplified
-- **Agents that hallucinate lose reputation** — their confidence gets capped and their claims get deprioritized
-- **When agents disagree, the network resolves it** — by confidence, reputation, consensus, recency, or manual review
-- **Correct knowledge propagates; bad knowledge doesn't** — federation spreads verified facts, trust scoring blocks noise
+## What's under the hood
 
-The result: instead of each LLM independently guessing, the network self-corrects toward accurate answers over time.
+- **Memory** — Facts stored as claims. Private by default, optionally shared. Content-hashed to prevent duplicates.
+- **Persistent storage (v2)** — SQLite-backed store. Claims survive restarts. WAL mode, thread-safe, zero dependencies.
+- **Federation** — Nodes register with an orchestrator. Public claims sync via HMAC-signed protocol messages.
+- **HTTP transport (v2)** — Network-ready federation over stdlib `urllib`. Client + server handler included.
+- **Trust & reputation** — Nodes earn reputation over time. Hallucination sources get penalized. Sybil-resistant.
+- **Token incentives** — Useful knowledge earns tokens. Bad contributions cost tokens. No blockchain — the ledger is in the orchestrator.
+- **Conflict resolution** — When nodes disagree, five strategies resolve it: confidence, reputation, recency, consensus, or manual review. Confirmations detected separately from contradictions.
+- **Settlement engine** — Sealed ledger boundary with verdict serialization. Winners earn, losers pay.
+- **Quality auto-tuning** — Feedback-driven policy updates per node.
+- **Scaling** — Consistent hash ring, backpressure, TTL-based expiry.
+- **Security** — Key rotation, replay protection, message expiry windows.
+- **GDPR compliance (v2)** — Consent management, data export (Art. 20), right to erasure (Art. 17), audit log.
+- **Framework adapters** — Drop-in for LangChain, LlamaIndex, AutoGen.
 
-| Feature | LLMem | memX | Mem0 | **Oracle Protocol** |
-|---------|-------|------|------|---------------------|
-| Per-user private memory | ✅ | ❌ | ✅ | ✅ |
-| Public/general facts | ❌ | ❌ | ❌ | ✅ |
-| Multi-node federation | ❌ | ✅ | ❌ | ✅ |
-| Wire protocol (HMAC-signed) | ❌ | ❌ | ❌ | ✅ |
-| Quality auto-tuning | ❌ | ❌ | ❌ | ✅ |
-| Token incentive layer | ❌ | ❌ | ❌ | ✅ |
-| Reputation + Sybil resistance | ❌ | ❌ | ❌ | ✅ |
-| Conflict resolution | ❌ | ❌ | ❌ | ✅ |
-| Standard memory format | ❌ | ❌ | ❌ | ✅ |
-| Provenance tracking | ❌ | ❌ | ❌ | ✅ |
-| Hallucination propagation defense | ❌ | ❌ | ❌ | ✅ |
-| No raw conversation storage | ❌ | ✅ | ❌ | ✅ |
+## Framework integrations
+
+```python
+from oracle_memory.integrations import LangChainMemory    # LangChain
+from oracle_memory.integrations import LlamaIndexMemory    # LlamaIndex
+from oracle_memory.integrations import AutoGenMemoryBackend # AutoGen
+```
 
 ## Architecture
 
 ```
-┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-│   Node A    │      │   Node B    │      │   Node C    │
-│ (your app)  │      │ (partner)   │      │ (mobile)    │
-│             │      │             │      │             │
-│ ┌─────────┐ │      │ ┌─────────┐ │      │ ┌─────────┐ │
-│ │ Service │ │      │ │ Service │ │      │ │ Service │ │
-│ │ + Store │ │      │ │ + Store │ │      │ │ + Store │ │
-│ │ +Quality│ │      │ │ +Quality│ │      │ │ +Quality│ │
-│ └────┬────┘ │      │ └────┬────┘ │      │ └────┬────┘ │
-│      │      │      │      │      │      │      │      │
-└──────┼──────┘      └──────┼──────┘      └──────┼──────┘
-       │                    │                     │
-       └────────────┬───────┴─────────────────────┘
-                    │
-           ┌────────▼────────┐
-           │  Orchestrator   │
-           │  ┌────────────┐ │
-           │  │ Federation │ │
-           │  │  Registry  │ │
-           │  ├────────────┤ │
-           │  │  Control   │ │
-           │  │   Plane    │ │
-           │  ├────────────┤ │
-           │  │  Policy    │ │
-           │  │  Engine    │ │
-           │  └────────────┘ │
-           └─────────────────┘
++-------------+      +-------------+      +-------------+
+|   Node A    |      |   Node B    |      |   Node C    |
+| (your app)  |      | (partner)   |      | (mobile)    |
+|  Service    |      |  Service    |      |  Service    |
+|  + Store    |      |  + Store    |      |  + Store    |
+|  + Quality  |      |  + Quality  |      |  + Quality  |
++------+------+      +------+------+      +------+------+
+       |                    |                     |
+       +----------+---------+---------------------+
+                  |
+          +-------v--------+
+          |  Orchestrator  |
+          |  Federation    |
+          |  Control Plane |
+          |  Policy Engine |
+          +----------------+
 ```
 
 ## Package layout
 
 | Module | Purpose |
 |--------|---------|
+| `oracle_memory.easy` | **One-liner API** — `OracleAgent` with 5 methods |
 | `oracle_memory.models` | Memory claims and palace coordinates |
-| `oracle_memory.extractor` | Extraction rules for prompts and documents |
-| `oracle_memory.store` | Abstract store interface + in-memory reference impl |
+| `oracle_memory.store` | Abstract store interface + in-memory impl |
+| `oracle_memory.sqlite_store` | **v2** — SQLite persistent store (WAL, thread-safe) |
 | `oracle_memory.service` | High-level orchestration for ingestion and retrieval |
-| `oracle_memory.protocol` | HMAC-signed wire protocol for node ↔ orchestrator |
+| `oracle_memory.extractor` | Extraction rules for prompts and documents |
+| `oracle_memory.protocol` | HMAC-signed wire protocol for node <-> orchestrator |
 | `oracle_memory.control_plane` | Orchestrator, retrieval policies, auto-tuning |
 | `oracle_memory.quality` | Quality event tracking and metric aggregation |
 | `oracle_memory.federation` | Multi-node registry and public claim exchange |
-| `oracle_memory.trust` | Reputation engine, Sybil resistance, provenance tracking |
-| `oracle_memory.conflict` | Conflict detection and resolution between claims |
-| `oracle_memory.schema` | Standard memory format — universal claim schema v1.0 |
+| `oracle_memory.trust` | Reputation engine, Sybil resistance, provenance |
+| `oracle_memory.conflict` | Conflict detection + resolution (5 strategies) |
+| `oracle_memory.settlement` | Verdict engine with sealed ledger boundary |
+| `oracle_memory.schema` | Standard memory format — `StandardClaim` v1.0 |
 | `oracle_memory.tokens` | Token incentive ledger — rewards, penalties, leaderboard |
-| `oracle_memory.palace_adapter` | Optional adapter for external palace storage backends |
-| `oracle_memory.easy` | **One-liner API** — `OracleAgent` with 5 methods |
-| `oracle_memory.crypto` | Security hardening — key rotation, replay protection |
-| `oracle_memory.scaling` | Consistent hash ring, backpressure, TTL, shard routing |
-| `oracle_memory.benchmark` | Benchmark suite — shared vs isolated memory comparison |
+| `oracle_memory.palace_adapter` | Optional adapter for external storage backends |
+| `oracle_memory.crypto` | Key rotation, replay protection |
+| `oracle_memory.scaling` | Hash ring, backpressure, TTL, shard routing |
+| `oracle_memory.monitor` | Network statistics dashboard |
+| `oracle_memory.benchmark` | Benchmark suite — shared vs isolated comparison |
+| `oracle_memory.http_transport` | **v2** — HTTP transport client + server handler |
+| `oracle_memory.gdpr` | **v2** — GDPR compliance (consent, erasure, export, audit) |
 | `oracle_memory.integrations` | Drop-in adapters for LangChain, LlamaIndex, AutoGen |
-
-## Quick start
-
-### Single-node (your app)
-
-```python
-from oracle_memory import OracleMemoryService, InMemoryMemoryStore
-
-store = InMemoryMemoryStore()
-service = OracleMemoryService(store=store, node_id="my-app")
-
-# Ingest a conversation (extracts facts, never stores raw text)
-service.ingest_conversation_text(
-    user_id="user-1",
-    text="I am building a Flask OAuth app and I prefer local models.",
-    conversation_id="conv-42",
-)
-
-# Ingest a document
-service.ingest_document_text(
-    user_id="user-1",
-    title="roadmap.txt",
-    text="The project uses Flask, SQLite, and local-first memory.",
-    visibility="public",
-)
-
-# Build context for an LLM prompt (respects retrieval policy)
-context = service.build_context(user_id="user-1")
-for line in context:
-    print(line)
-
-# Record user feedback to improve future retrieval
-service.record_feedback(user_id="user-1", conversation_id="conv-42", positive=True)
-```
-
-### Multi-node with orchestrator
-
-```python
-from oracle_memory import (
-    Orchestrator, FederationRegistry, FederationClient,
-    OracleMemoryService, InMemoryMemoryStore,
-)
-
-# --- Orchestrator side ---
-orch = Orchestrator(secret="shared-secret")
-registry = FederationRegistry()
-
-# --- Node side ---
-client = FederationClient(node_id="node-a", secret="shared-secret")
-store = InMemoryMemoryStore()
-service = OracleMemoryService(store=store, node_id="node-a", federation=client)
-
-# Register with orchestrator
-reg_msg = client.build_register_message({"supports": ["text", "pdf"]})
-node_record = orch.register_node("node-a", reg_msg.payload.get("capabilities"))
-
-# Orchestrator pushes tuned policy to node
-policy_msg = orch.push_policy_to_node("node-a", min_confidence=0.5)
-
-# Node ingests and public claims queue for federation
-service.ingest_conversation_text("user-1", "Python is great for prototyping.", "conv-1")
-
-# Flush queued public claims to orchestrator
-for msg in client.flush_pending():
-    claim_data = msg.payload
-    # ... send to orchestrator endpoint ...
-```
-
-### Quality auto-tuning loop
-
-```python
-# Node collects quality metrics and reports to orchestrator
-metrics = service.get_quality_metrics()
-report = orch.report_quality("node-a", "user-1", metrics)
-# Orchestrator auto-tunes the node's retrieval policy based on metrics
-```
 
 ## Protocol
 
-All node ↔ orchestrator messages use `ProtocolMessage` with HMAC-SHA256 signing:
+All node <-> orchestrator messages use `ProtocolMessage` with HMAC-SHA256 signing:
 
 | Message type | Direction | Purpose |
 |---|---|---|
-| `register_node` | Node → Orch | Join the federation |
-| `heartbeat` | Node → Orch | Keepalive + stats |
-| `memory_claim` | Node → Orch | Publish public claim |
-| `retrieval_request` | Node → Orch | Query public claims |
-| `retrieval_response` | Orch → Node | Return matching claims |
-| `policy_update` | Orch → Node | Push tuned retrieval policy |
-| `quality_report` | Node → Orch | Submit quality metrics |
-| `conversation_feedback` | Node → Orch | User feedback signal |
-| `conflict_notice` | Orch → Node | Conflicting claim alert |
+| `register_node` | Node -> Orch | Join the federation |
+| `heartbeat` | Node -> Orch | Keepalive + stats |
+| `memory_claim` | Node -> Orch | Publish public claim |
+| `retrieval_request` | Node -> Orch | Query public claims |
+| `retrieval_response` | Orch -> Node | Return matching claims |
+| `policy_update` | Orch -> Node | Push tuned retrieval policy |
+| `quality_report` | Node -> Orch | Submit quality metrics |
+| `conversation_feedback` | Node -> Orch | User feedback signal |
+| `conflict_notice` | Orch -> Node | Conflicting claim alert |
 
-## Core concepts
-
-- **Claims** — normalized extracted facts (not raw text)
-- **StandardClaim** — universal memory format (schema v1.0) compatible with Mem0, Memori, and custom backends
-- **Visibility** — `private` (user-only) or `public` (shared general facts)
-- **Palace coordinates** — `wing/hall/room` for organizing memory
-- **Retrieval policy** — tunable parameters for how memory is ranked and mixed
-- **Quality tracking** — hits, misses, hallucinations, corrections, satisfaction
-- **Auto-tuning** — orchestrator adjusts policies based on quality signals
-- **Reputation** — nodes earn trust; bad actors get throttled (Sybil resistance)
-- **Provenance** — every claim tracks origin node, confirmations, disputes
-- **Conflict resolution** — contradicting claims get detected and resolved
-- **Tokens** — reward useful contributions, penalize hallucinations
-
-## Benchmark: shared memory vs isolated RAG
-
-```python
-from oracle_memory.benchmark import run_benchmark
-result = run_benchmark()
-print(result.summary())
-```
+## Benchmark
 
 ```
-============================================================
-BENCHMARK: Shared Memory vs Isolated RAG
-============================================================
-[Isolated (no sharing)] accuracy=50.0% avg_recall=0.05ms ingest=0.80ms (5/10 correct)
-[Shared (oracle-memory)] accuracy=100.0% avg_recall=0.03ms ingest=0.60ms (10/10 correct)
-Improvement: +100.0% accuracy
-============================================================
+Isolated (no sharing): 50% accuracy  (5/10 correct)
+Shared (oracle-memory): 100% accuracy (10/10 correct)
 ```
+
+The shared agent answers correctly because knowledge exists somewhere in the network — even if that specific node never saw it.
 
 ## Security
 
 ```python
 from oracle_memory import SecureTransport, ProtocolMessage
 
-# Key rotation + replay protection in one object
 transport = SecureTransport(initial_secret="my-secret-v1")
-
 msg = ProtocolMessage(message_type="memory_claim", node_id="node-a")
-transport.prepare(msg)        # signs with current key
-assert transport.accept(msg)   # verifies signature + checks replay
-assert not transport.accept(msg)  # replay rejected!
-
+transport.prepare(msg)         # signs with current key
+assert transport.accept(msg)    # verifies + checks replay
+assert not transport.accept(msg) # replay rejected
 transport.rotate_key("my-secret-v2")  # old messages still verify
 ```
 
-## Scaling
+## How it compares
 
-```python
-from oracle_memory import ShardRouter
+| Feature | Mem0 | LLMem | memX | LangChain | **Oracle Protocol** |
+|---------|------|-------|------|-----------|---------------------|
+| Private memory | Yes | Yes | No | Yes | Yes |
+| Public shared facts | No | No | No | No | **Yes** |
+| Multi-node federation | No | No | Yes | No | **Yes** |
+| Wire protocol (HMAC) | No | No | No | No | **Yes** |
+| Token incentives | No | No | No | No | **Yes** |
+| Reputation + Sybil resistance | No | No | No | No | **Yes** |
+| Conflict resolution | No | No | No | No | **Yes** |
+| Quality auto-tuning | No | No | No | No | **Yes** |
+| Standard claim format | No | No | No | No | **Yes** |
+| Provenance tracking | No | No | No | No | **Yes** |
 
-router = ShardRouter(replication_factor=3)
-router.add_node("node-a")
-router.add_node("node-b")
-router.add_node("node-c")
+## What's new in v2.0.0
 
-info = router.register_claim("claim-123", ttl_seconds=86400)
-print(info)  # {shard_nodes: ["node-b", "node-c", "node-a"], expires_at: ...}
-```
+- **SQLite persistent store** — Drop-in replacement for `InMemoryMemoryStore`. Claims survive restarts. WAL journal mode, thread-safe via thread-local connections, TF-IDF search, extended API (`delete_claim`, `delete_user_data`, `export_user_data`, `count_claims`).
+- **HTTP transport** — Network-ready federation using stdlib `urllib`. Client class (`send`, `fetch_claims`, `register`, `heartbeat`, `publish_claim`) + server-side `handle_protocol_request()` with HMAC signature verification.
+- **GDPR compliance** — `GDPRController` with consent management (Article 7), data export (Article 20), right to erasure (Article 17), and full audit log. Works with both in-memory and SQLite stores.
+- **Deprecation fixes** — All `datetime.utcnow()` replaced with timezone-aware `datetime.now(timezone.utc)`.
+- **169 tests** — 39 new tests for v2 features, all passing with zero warnings.
 
 ## Roadmap
 
 1. Real embeddings / vector retrieval (ChromaDB, pgvector)
-2. HTTP transport for protocol messages
-3. SQLite and Postgres store backends
+2. ~~SQLite store backend~~ ✅ v2.0.0
+3. ~~HTTP transport for protocol messages~~ ✅ v2.0.0
 4. Dashboard for quality metrics and token leaderboard
-5. Bridge to crypto tokens (ERC-20 / Cosmos)
-6. MCP (Model Context Protocol) transport adapter
-7. Governance / voting mechanisms for claim disputes
-8. GDPR compliance hooks (right to erasure, data export)
-9. Streaming / real-time sync via WebSocket transport
+5. MCP (Model Context Protocol) transport adapter
+6. Bridge to crypto tokens (ERC-20 / Cosmos)
+7. Governance / voting for claim disputes
+8. ~~GDPR compliance hooks~~ ✅ v2.0.0
+9. WebSocket real-time sync
 10. Formal protocol specification (RFC-style)
+11. Postgres store backend
 
-## What problem this solves
+## FAQ
 
-Every AI assistant hallucinates independently. Ask three agents the same question and you might get three different wrong answers, because none of them have a way to verify, share, or correct knowledge socially.
+**Does it require a database?**
+No. The default store is in-memory. For persistence, use `SQLiteStore("memory.db")` — no external database needed. You can also plug in any backend by implementing the `MemoryStore` interface.
 
-This library is the social infrastructure that's missing. It makes LLM interactions self-correcting:
+**How is it different from Mem0?**
+Mem0 extracts facts for a single user. Oracle Protocol adds federation, tokens, trust scoring, conflict resolution, and a standard schema so agents share knowledge across a network.
 
-- One agent learns a fact → every agent in the network benefits
-- An agent that consistently provides wrong answers → loses reputation, gets filtered out
-- Two agents contradict each other → the system resolves it with evidence, not randomness
-
-Here is the gap analysis and what we solve:
-
-| Gap identified | Why it's hard | Our solution |
-|---|---|---|
-| 🧪 Memory quality unsolved | Hallucination propagation, conflicting truths | `quality.py` + `trust.py` — quality tracking auto-tunes policy; reputation caps confidence from untrusted nodes |
-| 🔐 Privacy vs sharing conflict | Personal memory is sensitive | `private`/`public` visibility on every claim; private memory never leaves the node |
-| 💸 Token incentives are tricky | Valuation, spam, Sybil resistance | `tokens.py` — reward accepted claims, penalize hallucinations; `trust.py` — rate limiting + reputation gating |
-| ⚙️ No standard memory format | Different systems use different formats | `schema.py` — `StandardClaim` v1.0 with adapters from Mem0, semantic triples, and custom sources |
-| 🌐 No shared memory graph | Each system is isolated | `federation.py` — nodes register, exchange public claims, query cross-node |
-| 🤝 No trust/attribution layer | Who contributed what? | `trust.py` — `ClaimProvenance` tracks origin, confirmations, disputes, retrievals |
-| ⚔️ Conflicting truths | Two nodes disagree | `conflict.py` — detect contradictions, resolve by confidence/reputation/consensus/recency |
-
-This library is the **social layer between isolated LLMs and collective intelligence**.
-It sits on top of any local memory store and adds:
-- A wire protocol for agents to communicate like participants in a network
-- A trust and reputation system so good agents rise and bad agents get filtered
-- Token incentives that reward correct contributions and penalize hallucinations
-- Federation so verified knowledge spreads — not noise
-- Conflict resolution so disagreements get settled with evidence
-- Private-first design: raw conversations never leave the node
-
-### Who this is for
-
-- Developers building **LLM-powered apps** that need agents to give correct answers
-- Teams running **multiple AI agents** that should share verified knowledge, not duplicate hallucinations
-- Anyone building **social AI systems** where agents interact, build reputation, and self-correct
-- Projects that use **RAG or retrieval-augmented generation** and want cross-node trust + sync
-
-## How it compares
-
-| Project | What it does | What's missing |
-|---------|-------------|----------------|
-| [Unibase](https://unibase.io/) | Blockchain AI memory layer (UB token) | Web3-only; requires blockchain; no local-first option; no quality auto-tuning |
-| [MemoryGr.id](https://memorygr.id/) | Open-source AI society memory | Individual + collective memory for agents; no token incentives, no wire protocol |
-| [Distributed Knowledge (OpenMined)](https://openmined.org/) | Federated LLM network, Ollama-compatible | Privacy-focused federation; no structured memory schema, no reputation system |
-| [Panini](https://arxiv.org/) | Structured Memory via GSW (question-answer networks) | Research concept; write-time compute for RAG; no sharing protocol or tokens |
-| [LLM Wiki](https://github.com/) | Local LLM → auto-generated wiki | Document ingestion pipeline; single-user, no federation or incentives |
-| [SingularityNET](https://singularitynet.io/) | Decentralized AI marketplace | Token economy for services, not memory |
-| [Fetch.ai](https://fetch.ai/) | Autonomous agent framework | Agent infra, no shared memory layer |
-| [Ocean Protocol](https://oceanprotocol.com/) | Data marketplace with tokens | Data sharing, not LLM memory |
-| [Allora Network](https://allora.network/) | Collective intelligence via consensus | Scoring agent outputs; no persistent memory |
-| [Recall Network](https://recall.network/) | Agent competition + ranking | Agent economy, not structured memory sync |
-| [LLMem](https://llmem.com/) | Cross-LLM memory sync | "Dropbox for AI" — not tokenized, not a network |
-| [memX](https://github.com/) | Multi-agent real-time shared memory | CRDT coordination, no knowledge economy |
-| [Mem0](https://mem0.ai/) | Extracted facts for LLMs | Single-user, no federation, no tokens |
-| [LangChain](https://langchain.com/) / [LlamaIndex](https://llamaindex.ai/) | RAG + persistent storage | Framework-level; no multi-node federation or incentives |
-| [AutoGen](https://github.com/microsoft/autogen) / [CrewAI](https://crewai.com/) | Multi-agent toolkits | Shared memory within a run; no persistent cross-node network |
-| [KBLAM](https://arxiv.org/) | Knowledge tokens injected into attention | Research paper; injects KV pairs, no sharing protocol |
-| Moltbook / OpenClaw | Agent memory marketplace concept | Reddit-like social layer; not a structured memory protocol |
-| [NodeGoAI](https://nodegoai.com/) | Distributed GPU compute | Infra layer only, no knowledge sharing |
-
-**None of these** combine all layers:
-
-| Layer | This lib | Others |
-|-------|----------|--------|
-| Local structured memory | ✅ Built-in + pluggable backends | Partial (Mem0) |
-| Standard memory format | ✅ `StandardClaim` v1.0 | ❌ No shared schema |
-| Federation protocol | ✅ HMAC-signed messages | ❌ No cross-node protocol |
-| Token incentives | ✅ Reward/penalty ledger | ❌ Experimental at best |
-| Trust + reputation | ✅ Sybil resistance, rate limiting | ❌ Not addressed |
-| Conflict resolution | ✅ 5 strategies | ❌ Not addressed |
-| Provenance tracking | ✅ Origin, confirmations, disputes | ❌ Not addressed |
-| Hallucination defense | ✅ Confidence capped to reputation | ❌ Not addressed |
-| Quality auto-tuning | ✅ Feedback-driven policy updates | ❌ Not addressed |
-
-## Keywords
-
-`social LLM` · `social AI agents` · `agent trust` · `agent reputation` ·
-`collective knowledge` · `global sharing` · `token network` · `LLM memory` ·
-`oracle protocol` · `federation protocol` · `shared memory graph` · `agent memory` ·
-`decentralized AI memory` · `knowledge exchange` · `collective intelligence` ·
-`AI orchestrator` · `quality auto-tuning` · `RAG` · `retrieval augmented generation` ·
-`context sharing` · `private-first memory` · `multi-agent knowledge` ·
-`distributed LLM memory` · `conversational AI memory` · `token incentive` ·
-`Sybil resistance` · `hallucination defense` · `conflict resolution` ·
-`claim provenance` · `reputation system` · `standard memory format` ·
-`knowledge graph` · `Mem0 alternative` · `LLMem alternative` · `memX alternative` ·
-`SingularityNET memory` · `Allora memory` · `Recall Network memory` ·
-`shared intelligence` · `collective context field` · `memory fragments as assets` ·
-`knowledge tokens` · `KBLAM` · `LangChain memory` · `LlamaIndex memory` ·
-`AutoGen shared memory` · `CrewAI memory` · `multi-agent memory` ·
-`persistent agent memory` · `knowledge marketplace` · `episodic memory LLM` ·
-`continual learning` · `Moltbook` · `OpenClaw` · `vector database` ·
-`P2P knowledge sharing` · `decentralized inference` · `agent swarm memory` ·
-`MemOS` · `memory infrastructure` · `key rotation` · `replay protection` ·
-`consistent hashing` · `backpressure` · `claim TTL` · `shard routing` ·
-`LangChain plugin` · `LlamaIndex plugin` · `AutoGen memory backend` ·
-`one-liner API` · `drop-in memory` · `benchmark suite` · `shared vs isolated` ·
-`memory coordination layer` · `social trust layer` · `self-correcting AI` ·
-`correct AI answers` · `anti-hallucination network` · `social LLM interactions`
+**Can I use it with LangChain / LlamaIndex / AutoGen?**
+Yes. Drop-in adapters included. One import and your agent has persistent shared memory.
 
 ## Links
 
 - **PyPI:** https://pypi.org/project/oracle-mempalace/
 - **GitHub:** https://github.com/Jeffyjefchat/oracle-protocol
-- **Live demo & app:** https://gpt-mind.gcapay.club/
-- **Developer forum:** https://gpt-mind.gcapay.club/forum
+- **Live demo:** https://gpt-mind.gcapay.club/
+- **Forum:** https://gpt-mind.gcapay.club/forum
 - **Blog:** https://gpt-mind.gcapay.club/blog
+
+---
+
+*Oracle Protocol is a collective knowledge layer for AI agents — persistent memory, federated exchange, trust scoring, and token incentives in a single Python package.*

@@ -4,7 +4,7 @@ import math
 import re
 from abc import ABC, abstractmethod
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Iterable
 
 from .models import MemoryClaim
@@ -64,7 +64,7 @@ class InMemoryMemoryStore(MemoryStore):
                 and existing.visibility == claim.visibility
                 and existing.content.lower() == claim.content.lower()
             ):
-                existing.updated_at = datetime.utcnow()
+                existing.updated_at = datetime.now(timezone.utc)
                 return existing
         self._claims.append(claim)
         return claim

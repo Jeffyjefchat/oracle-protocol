@@ -14,7 +14,7 @@ from __future__ import annotations
 import hashlib
 import os
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from .models import MemoryClaim, PalaceCoordinate
@@ -81,7 +81,7 @@ class PalaceAdapter:
             "source_file": f"oracle:{claim.source_kind}",
             "chunk_index": 0,
             "added_by": "oracle-memory",
-            "filed_at": datetime.utcnow().isoformat(),
+            "filed_at": datetime.now(timezone.utc).isoformat(),
             "oracle_claim_id": claim.claim_id,
             "oracle_user_id": claim.user_id,
             "oracle_visibility": claim.visibility,

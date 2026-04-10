@@ -1,0 +1,49 @@
+============================================================
+  ORACLE PROTOCOL v2.0.0 ù STATISTICS
+============================================================
+
+SOURCE CODE
+  Modules:             25
+  Lines of code:       4,777
+  Classes:             51
+  Functions/methods:   300
+
+TESTS
+  Test files:          3
+  Test functions:      130
+  Test lines:          1,926
+
+MODULE BREAKDOWN
+  Module                          Lines  Classes  Functions
+  --------------------------------------------------------
+  __init__.py                       102        0          0
+  benchmark.py                      214        2          8
+  conflict.py                       290        5         14
+  control_plane.py                  207        4         15
+  crypto.py                         182        4         14
+  easy.py                           239        1         12
+  extractor.py                      114        0          5
+  federation.py                     187        3         16
+  gdpr.py                           194        3         10
+  http_transport.py                 195        1         14
+  integrations.py                   167        3         18
+  models.py                          39        2          1
+  monitor.py                        371        2          9
+  palace_adapter.py                 212        1         10
+  protocol.py                       154        1         12
+  quality.py                        165        2         15
+  scaling.py                        210        4         21
+  schema.py                         197        1         11
+  service.py                         99        1          7
+  settlement.py                     297        1         11
+  sqlite_store.py                   282        1         14
+  store.py                          169        3         15
+  tokens.py                         200        3         21
+  trust.py                          235        3         25
+  version.py                         56        0          2
+  --------------------------------------------------------
+  TOTAL                            4777       51        300
+
+DEPENDENCIES:  0 required (stdlib only)
+PYTHON:        3.9+
+LICENSE:       MIT
