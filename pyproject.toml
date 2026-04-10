@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "oracle-mempalace"
-version = "2.0.0"
+version = "2.1.0"
 description = "Oracle Protocol v2: persistent SQLite store, HTTP transport, GDPR compliance, federation, trust scoring, token incentives, and conflict resolution for AI agents"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -39,6 +39,9 @@ dev = ["pytest>=7.0", "pytest-cov>=4.0"]
 Homepage = "https://github.com/Jeffyjefchat/oracle-protocol"
 Repository = "https://github.com/Jeffyjefchat/oracle-protocol"
 Issues = "https://github.com/Jeffyjefchat/oracle-protocol/issues"
+
+[project.scripts]
+oracle = "oracle_memory.cli:main"
 
 [tool.setuptools]
 packages = ["oracle_memory"]

@@ -1,17 +1,105 @@
 # Oracle Protocol
 
-> A shared memory layer for AI agents — persistent, federated, trust-scored.
+> Ask Oracle anything and get a confidence-scored answer.
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-169%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-204%20passing-brightgreen)]()
 [![PyPI](https://img.shields.io/pypi/v/oracle-mempalace)](https://pypi.org/project/oracle-mempalace/)
 
 AI agents forget everything between sessions. RAG gives them retrieval — but only locally. If you run multiple agents, or work across machines, each one starts from scratch.
 
 Oracle Protocol adds the missing layer: persistent memory that federates across nodes, with trust scoring so bad data doesn't propagate.
 
-**25 modules. 169 tests. Zero required dependencies.**
+**27 modules. 204 tests. Zero required dependencies.**
+
+## 10-second demo
+
+```bash
+pip install oracle-mempalace
+oracle demo
+```
+
+```
+Oracle Protocol v2.1.0 — Live Demo
+═══════════════════════════════════
+Step 1: Teaching the oracle...
+  + Python was created by Guido van Rossum in 1991
+  + Flask is a micro web framework for Python
+  + Trust scoring prevents bad data from spreading
+  → Stored 10 claims (8 public, 2 private)
+
+Step 2: Querying the oracle...
+  Q: who created Python?
+  A: Python was created by Guido van Rossum in 1991
+  → 👍 Feedback recorded
+
+Step 3: Oracle statistics
+  Total claims: 10
+  Token balance: 10.0
+```
+
+## CLI
+
+```bash
+oracle ask "Who created Python?"
+oracle verify "Flask uses Jinja2 templates"
+oracle remember "Python 3.12 added f-string improvements"
+oracle trends
+oracle stats
+oracle export --output backup.json
+oracle forget "outdated fact"
+```
+
+### oracle ask
+
+```bash
+$ oracle ask "who created Python?"
+
+  Oracle says  (2 results, 0.01s)
+  ────────────────────────────────
+  1. Python was created by Guido van Rossum in 1991
+     Confidence: ████████████░░░░░░░░ 60% (MEDIUM)
+
+  2. Flask is a micro web framework for Python
+     Confidence: ████████████░░░░░░░░ 60% (MEDIUM)
+```
+
+### oracle verify
+
+```bash
+$ oracle verify "Python was created by Guido van Rossum"
+
+  Verifying: "Python was created by Guido van Rossum"
+  ────────────────────────────────
+  Verdict: LIKELY TRUE
+  Combined confidence: ████████████████░░░░ 78% (HIGH)
+
+  Supporting evidence (1):
+    ✓ Python was created by Guido van Rossum in 1991
+      confidence=60%  relevance=83%
+```
+
+### oracle trends
+
+```bash
+$ oracle trends
+
+  Oracle Knowledge Trends
+  ────────────────────────────────
+  Total claims: 38
+  Categories:   5
+  Sources:      conversation(12), document(26)
+
+  EVENT (15 claims, 10 high-confidence)
+    ██████████ 80%  AI agents forget everything...
+    ████████░░ 60%  Federation allows knowledge...
+  ...
+
+  Top verified claims:
+    1. HMAC-SHA256 is used for message signing
+       confidence: ████████████████████ 95% (HIGH)
+```
 
 ## Install
 
@@ -26,7 +114,7 @@ cd oracle-protocol
 pip install -e ".[dev]"
 ```
 
-## Quick start
+## Quick start (Python API)
 
 ```python
 from oracle_memory import OracleAgent
@@ -76,6 +164,7 @@ gdpr.erase_user_data("user-42")            # Article 17 right to erasure
 - **Scaling** — Consistent hash ring, backpressure, TTL-based expiry.
 - **Security** — Key rotation, replay protection, message expiry windows.
 - **GDPR compliance (v2)** — Consent management, data export (Art. 20), right to erasure (Art. 17), audit log.
+- **CLI (v2.1)** — `oracle ask`, `oracle verify`, `oracle trends`, `oracle remember`, `oracle demo`. The user-facing product layer.
 - **Framework adapters** — Drop-in for LangChain, LlamaIndex, AutoGen.
 
 ## Framework integrations
@@ -111,6 +200,7 @@ from oracle_memory.integrations import AutoGenMemoryBackend # AutoGen
 
 | Module | Purpose |
 |--------|---------|
+| `oracle_memory.cli` | **v2.1** — CLI: `oracle ask`, `verify`, `trends`, `demo` |
 | `oracle_memory.easy` | **One-liner API** — `OracleAgent` with 5 methods |
 | `oracle_memory.models` | Memory claims and palace coordinates |
 | `oracle_memory.store` | Abstract store interface + in-memory impl |
@@ -187,6 +277,14 @@ transport.rotate_key("my-secret-v2")  # old messages still verify
 | Quality auto-tuning | No | No | No | No | **Yes** |
 | Standard claim format | No | No | No | No | **Yes** |
 | Provenance tracking | No | No | No | No | **Yes** |
+| CLI tool | No | No | No | No | **Yes** |
+
+## What's new in v2.1.0
+
+- **CLI** — `oracle ask`, `oracle verify`, `oracle remember`, `oracle trends`, `oracle stats`, `oracle export`, `oracle forget`, `oracle demo`. Confidence-scored answers from the command line. The user-facing product layer.
+- **`__main__` support** — `python -m oracle_memory demo` works now.
+- **`[project.scripts]` entry point** — `pip install oracle-mempalace` gives you the `oracle` command globally.
+- **204 tests** — 35 new CLI tests, all passing with zero warnings.
 
 ## What's new in v2.0.0
 

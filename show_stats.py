@@ -33,7 +33,7 @@ for f in test_files:
         total_tests += len(re.findall(r"^def test_", content, re.MULTILINE))
 
 print("=" * 60)
-print("  ORACLE PROTOCOL v2.0.0 — STATISTICS")
+print("  ORACLE PROTOCOL v2.1.0 — STATISTICS")
 print("=" * 60)
 print()
 print("SOURCE CODE")

@@ -1,23 +1,25 @@
 ============================================================
-  ORACLE PROTOCOL v2.0.0 ù STATISTICS
+  ORACLE PROTOCOL v2.1.0 ù STATISTICS
 ============================================================
 
 SOURCE CODE
-  Modules:             25
-  Lines of code:       4,777
+  Modules:             27
+  Lines of code:       5,325
   Classes:             51
-  Functions/methods:   300
+  Functions/methods:   315
 
 TESTS
-  Test files:          3
+  Test files:          4
   Test functions:      130
-  Test lines:          1,926
+  Test lines:          2,219
 
 MODULE BREAKDOWN
   Module                          Lines  Classes  Functions
   --------------------------------------------------------
   __init__.py                       102        0          0
+  __main__.py                         6        0          0
   benchmark.py                      214        2          8
+  cli.py                            542        0         15
   conflict.py                       290        5         14
   control_plane.py                  207        4         15
   crypto.py                         182        4         14
@@ -42,7 +44,7 @@ MODULE BREAKDOWN
   trust.py                          235        3         25
   version.py                         56        0          2
   --------------------------------------------------------
-  TOTAL                            4777       51        300
+  TOTAL                            5325       51        315
 
 DEPENDENCIES:  0 required (stdlib only)
 PYTHON:        3.9+

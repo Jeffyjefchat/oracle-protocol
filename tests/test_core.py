@@ -621,6 +621,78 @@ def test_oracle_agent_context_for_llm():
     assert isinstance(context, str)
 
 
+def test_oracle_agent_federated_init():
+    """OracleAgent with orchestrator auto-registers and gets policy."""
+    from oracle_memory import Orchestrator
+    orch = Orchestrator(secret="test-secret")
+    agent = OracleAgent("fed-agent", orchestrator=orch, secret="test-secret")
+    # Node should be registered
+    assert orch.node_count == 1
+    record = orch._nodes.get("fed-agent")
+    assert record is not None
+    assert record.active_policy.max_private_claims == 8  # default policy
+    # Agent should still work normally
+    agent.remember("federated fact")
+    results = agent.recall("federated")
+    assert len(results) > 0
+    agent.shutdown()
+
+
+def test_oracle_agent_federated_heartbeat():
+    """Heartbeat thread starts and sends stats to orchestrator."""
+    import time
+    from oracle_memory import Orchestrator
+    orch = Orchestrator(secret="hb-secret")
+    agent = OracleAgent(
+        "hb-agent", orchestrator=orch, secret="hb-secret",
+        heartbeat_interval=0.1,  # fast for testing
+    )
+    agent.remember("some data")
+    # Wait for at least one heartbeat cycle
+    time.sleep(0.3)
+    record = orch._nodes.get("hb-agent")
+    assert record is not None
+    # Heartbeat should have updated last_heartbeat after registration
+    assert record.is_alive
+    agent.shutdown()
+
+
+def test_oracle_agent_federated_policy_sync():
+    """Policy updates from orchestrator propagate to agent."""
+    import time
+    from oracle_memory import Orchestrator
+    orch = Orchestrator(secret="ps-secret")
+    agent = OracleAgent(
+        "ps-agent", orchestrator=orch, secret="ps-secret",
+        heartbeat_interval=0.1,
+    )
+    # Change the default policy on the orchestrator
+    orch.push_policy_to_node("ps-agent", min_confidence=0.8)
+    # Wait for heartbeat to pick up the new policy
+    time.sleep(0.3)
+    assert agent._service._policy.min_confidence == 0.8
+    agent.shutdown()
+
+
+def test_oracle_agent_shutdown_idempotent():
+    """shutdown() can be called multiple times without error."""
+    from oracle_memory import Orchestrator
+    orch = Orchestrator(secret="s")
+    agent = OracleAgent("sd-agent", orchestrator=orch, secret="s")
+    agent.shutdown()
+    agent.shutdown()  # should not raise
+
+
+def test_oracle_agent_no_orchestrator_unchanged():
+    """Without orchestrator, OracleAgent works exactly as before."""
+    agent = OracleAgent("local-agent")
+    assert agent._federation is None
+    assert agent._heartbeat_thread is None
+    agent.remember("local fact")
+    results = agent.recall("local")
+    assert len(results) > 0
+
+
 # ── crypto.py (security hardening) ──────────────────────────────────────
 
 from oracle_memory.crypto import KeyRing, ReplayGuard, SecureTransport
