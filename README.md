@@ -7,34 +7,121 @@
 [![Tests](https://img.shields.io/badge/tests-204%20passing-brightgreen)]()
 [![PyPI](https://img.shields.io/pypi/v/oracle-mempalace)](https://pypi.org/project/oracle-mempalace/)
 
-Most AI memory systems store facts. Oracle Protocol **challenges them**.
+Most AI systems give answers.
+Oracle Protocol lets **multiple agents challenge each other**,
+resolve conflicts, and **apply real consequences**.
 
-When multiple agents submit conflicting claims, the protocol detects the contradiction, resolves it using reputation and confidence scoring, issues a verdict, and settles consequences — winners earn tokens, losers lose them. One source of truth emerges.
+---
+
+## ⚖️ What it does
+
+- Detects contradictions between agents
+- Resolves disputes using structured logic
+- Produces a **verdict** (who's right, who's wrong)
+- Applies consequences:
+  - ✅ Correct agents gain tokens + reputation
+  - ❌ Incorrect agents lose trust
+
+---
+
+## 🔁 The core flow
 
 ```
-Agent A claims: "GPT-5 has 10T parameters"    (confidence: 70%, reputation: 60%)
-Agent B claims: "GPT-5 has 5T parameters"     (confidence: 50%, reputation: 30%)
-Agent C claims: "GPT-5 has 8T parameters"     (confidence: 95%, reputation: 90%)
-
-⚠ 3 conflicts detected
-✔ Verdict: Agent C wins (reputation_wins strategy)
-✔ Agent C: +1.5 tokens, reputation 90% → 94%  ⭐ premium
-✗ Agent A: -3.0 tokens, reputation 60% → 57%
-✗ Agent B: -3.0 tokens, reputation 30% → 27%  ❌ untrusted
+claim → conflict → verdict → finalize → settle
 ```
 
-**This is what makes it different: claims can be challenged, and outcomes have consequences.**
+This is not just scoring.
+This is a **system for resolving truth between agents**.
 
-## See it live
+---
+
+## 🧩 How it works
+
+```
+Agent A ── claims ──┐
+                    │
+Agent B ── disputes ─┼──→  Conflict Detector
+                    │
+Agent C ── claims ──┘
+                    ↓
+             Resolution Engine
+              (5 strategies)
+                    ↓
+                 Verdict
+            (who is correct)
+                    ↓
+              Finalization
+          (inspectable, vetable)
+                    ↓
+               Settlement
+          (tokens + reputation)
+```
+
+---
+
+## ⚡ Example
+
+```python
+agent_a: "BTC is $70,000"   (confidence: 80%, reputation: 45%)
+agent_b: "BTC is $65,000"   (confidence: 60%, reputation: 30%)
+
+# conflict detected automatically
+# system resolves using reputation + confidence
+
+→ agent_a wins
+→ +5 tokens, reputation increases
+
+→ agent_b loses
+→ reputation decreases
+
+# Correct agents are reinforced.
+# Incorrect agents lose trust.
+# Over time, the system learns who to believe.
+```
+
+---
+
+## 🎮 Multi-Agent Conflict Demo
 
 ```bash
 pip install oracle-mempalace
 python -m oracle_memory.demo_conflict
 ```
 
-Three agents disagree. The protocol detects conflicts, proposes verdicts (inspectable, vetable), finalizes them, and settles tokens + reputation. Full two-phase resolution in 6 steps.
+What happens:
 
-## Quick start
+- 3 agents submit conflicting claims
+- 3 contradictions are detected
+- Verdicts are proposed and finalized (two-phase)
+- Tokens and reputation are updated
+
+Example outcome:
+
+```
+verified-source:  +5.0 tokens   reputation 90% → 94%  ⭐ premium
+research-lab:     -1.0 tokens   reputation 60% → 57%
+news-bot:         -1.0 tokens   reputation 30% → 27%  ❌ untrusted
+```
+
+This shows the full system in action.
+
+---
+
+## 🧠 When should you use this?
+
+Use Oracle Protocol when:
+
+- Multiple AI agents **disagree on facts**
+- You need a system to **decide what is correct**
+- You want **trust to evolve over time**
+- You're building **multi-agent systems**
+- You need **automatic validation of AI outputs**
+
+Instead of trusting one model, you let agents **compete and converge on truth**.
+
+---
+
+## 🚀 Quick start
 
 ```python
 from oracle_memory import OracleAgent
@@ -100,9 +187,9 @@ $ oracle verify "Python was created by Guido van Rossum"
       confidence=60%  relevance=83%
 ```
 
-## The conflict resolution pipeline
+## The conflict resolution pipeline (deep dive)
 
-This is the core of the protocol. Every other feature exists to support this flow.
+Every other feature exists to support this flow.
 
 ```
 ┌──────────────┐     ┌───────────────────┐     ┌──────────────────┐
@@ -357,6 +444,11 @@ When two claims contradict, `ConflictDetector` flags it. `ConflictResolver` pick
 
 ---
 
+## 🧠 What this is
+
+Oracle Protocol is not just an AI tool.
+It's a **truth resolution layer for multi-agent systems**.
+
 **28 modules. 204+ tests. Zero required dependencies.**
 
-*Oracle Protocol — where claims are challenged, verdicts are rendered, and truth has consequences.*
+*Claims are challenged. Verdicts are rendered. Truth has consequences.*
